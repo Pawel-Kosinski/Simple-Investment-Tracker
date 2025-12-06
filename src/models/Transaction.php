@@ -6,7 +6,7 @@ class Transaction {
     public const TYPE_DIVIDEND = 'dividend';
 
     private ?int $id;
-    private int $userId;
+    private int $portfolioId;
     private int $assetId;
     private string $transactionType;
     private float $quantity;
@@ -20,7 +20,7 @@ class Transaction {
     private ?Asset $asset = null;
 
     public function __construct(
-        int $userId,
+        int $portfolioId,
         int $assetId,
         string $transactionType,
         float $quantity,
@@ -32,7 +32,7 @@ class Transaction {
         ?string $createdAt = null
     ) {
         $this->id = $id;
-        $this->userId = $userId;
+        $this->portfolioId = $portfolioId;
         $this->assetId = $assetId;
         $this->transactionType = $transactionType;
         $this->quantity = $quantity;
@@ -46,7 +46,7 @@ class Transaction {
     public static function fromArray(array $data): Transaction
     {
         $transaction = new Transaction(
-            $data['user_id'],
+            $data['portfolio_id'],
             $data['asset_id'],
             $data['transaction_type'],
             (float) $data['quantity'],
@@ -72,9 +72,9 @@ class Transaction {
         return $this->id;
     }
 
-    public function getUserId(): int
+    public function getPortfolioId(): int
     {
-        return $this->userId;
+        return $this->portfolioId;
     }
 
     public function getAssetId(): int
@@ -123,9 +123,9 @@ class Transaction {
     }
 
     // Settery
-    public function setUserId(int $userId): void
+    public function setPortfolioId(int $portfolioId): void
     {
-        $this->userId = $userId;
+        $this->portfolioId = $portfolioId;
     }
 
     public function setAssetId(int $assetId): void
@@ -167,7 +167,6 @@ class Transaction {
     {
         $this->asset = $asset;
     }
-
     // Metody pomocnicze
     public function isBuy(): bool
     {

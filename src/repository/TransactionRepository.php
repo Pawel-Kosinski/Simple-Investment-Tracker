@@ -21,13 +21,49 @@ class TransactionRepository extends Repository
         return $row ? Transaction::fromArray($row) : null;
     }
 
-    public function findByUserId(int $userId, ?int $limit = null, int $offset = 0): array
+    public function findByPortfolioId(int $portfolioId, ?int $limit = null, int $offset = 0): array
     {
         $sql = '
             SELECT t.*, a.symbol, a.name, a.asset_type, a.currency, a.yahoo_symbol
             FROM transactions t
             INNER JOIN assets a ON t.asset_id = a.id
-            WHERE t.user_id = :user_id
+            WHERE t.portfolio_id = :portfolio_id
+            ORDER BY t.transaction_date DESC
+        ';
+
+        if ($limit !== null) {
+            $sql .= ' LIMIT :limit OFFSET :offset';
+        }
+
+        $stmt = $this->database->prepare($sql);
+        $stmt->bindParam(':portfolio_id', $portfolioId, PDO::PARAM_INT);
+
+        if ($limit !== null) {
+            $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+        }
+
+        $stmt->execute();
+
+        $transactions = [];
+        while ($row = $stmt->fetch()) {
+            $transactions[] = Transaction::fromArray($row);
+        }
+
+        return $transactions;
+    }
+
+    /**
+     * Pobiera transakcje dla wszystkich portfeli użytkownika
+     */
+    public function findByUserId(int $userId, ?int $limit = null, int $offset = 0): array
+    {
+        $sql = '
+            SELECT t.*, a.symbol, a.name, a.asset_type, a.currency, a.yahoo_symbol, p.name as portfolio_name
+            FROM transactions t
+            INNER JOIN assets a ON t.asset_id = a.id
+            INNER JOIN portfolios p ON t.portfolio_id = p.id
+            WHERE p.user_id = :user_id
             ORDER BY t.transaction_date DESC
         ';
 
@@ -53,16 +89,16 @@ class TransactionRepository extends Repository
         return $transactions;
     }
 
-    public function findByUserAndAsset(int $userId, int $assetId): array
+    public function findByPortfolioAndAsset(int $portfolioId, int $assetId): array
     {
         $stmt = $this->database->prepare('
             SELECT t.*, a.symbol, a.name, a.asset_type, a.currency, a.yahoo_symbol
             FROM transactions t
             INNER JOIN assets a ON t.asset_id = a.id
-            WHERE t.user_id = :user_id AND t.asset_id = :asset_id
+            WHERE t.portfolio_id = :portfolio_id AND t.asset_id = :asset_id
             ORDER BY t.transaction_date ASC
         ');
-        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindParam(':portfolio_id', $portfolioId, PDO::PARAM_INT);
         $stmt->bindParam(':asset_id', $assetId, PDO::PARAM_INT);
         $stmt->execute();
 
@@ -74,19 +110,19 @@ class TransactionRepository extends Repository
         return $transactions;
     }
 
-    public function findByDateRange(int $userId, string $startDate, string $endDate): array
+    public function findByDateRange(int $portfolioId, string $startDate, string $endDate): array
     {
         $stmt = $this->database->prepare('
             SELECT t.*, a.symbol, a.name, a.asset_type, a.currency, a.yahoo_symbol
             FROM transactions t
             INNER JOIN assets a ON t.asset_id = a.id
-            WHERE t.user_id = :user_id 
+            WHERE t.portfolio_id = :portfolio_id 
               AND t.transaction_date >= :start_date 
               AND t.transaction_date <= :end_date
             ORDER BY t.transaction_date DESC
         ');
         $stmt->execute([
-            'user_id' => $userId,
+            'portfolio_id' => $portfolioId,
             'start_date' => $startDate,
             'end_date' => $endDate
         ]);
@@ -102,12 +138,12 @@ class TransactionRepository extends Repository
     public function create(Transaction $transaction): int
     {
         $stmt = $this->database->prepare('
-            INSERT INTO transactions (user_id, asset_id, transaction_type, quantity, price, commission, transaction_date, notes)
-            VALUES (:user_id, :asset_id, :transaction_type, :quantity, :price, :commission, :transaction_date, :notes)
+            INSERT INTO transactions (portfolio_id, asset_id, transaction_type, quantity, price, commission, transaction_date, notes)
+            VALUES (:portfolio_id, :asset_id, :transaction_type, :quantity, :price, :commission, :transaction_date, :notes)
         ');
 
         $stmt->execute([
-            'user_id' => $transaction->getUserId(),
+            'portfolio_id' => $transaction->getPortfolioId(),
             'asset_id' => $transaction->getAssetId(),
             'transaction_type' => $transaction->getTransactionType(),
             'quantity' => $transaction->getQuantity(),
@@ -150,12 +186,12 @@ class TransactionRepository extends Repository
                 commission = :commission,
                 transaction_date = :transaction_date,
                 notes = :notes
-            WHERE id = :id AND user_id = :user_id
+            WHERE id = :id AND portfolio_id = :portfolio_id
         ');
 
         return $stmt->execute([
             'id' => $transaction->getId(),
-            'user_id' => $transaction->getUserId(),
+            'portfolio_id' => $transaction->getPortfolioId(),
             'asset_id' => $transaction->getAssetId(),
             'transaction_type' => $transaction->getTransactionType(),
             'quantity' => $transaction->getQuantity(),
@@ -166,28 +202,41 @@ class TransactionRepository extends Repository
         ]);
     }
 
-    public function delete(int $id, int $userId): bool
+    public function delete(int $id, int $portfolioId): bool
     {
-        $stmt = $this->database->prepare('DELETE FROM transactions WHERE id = :id AND user_id = :user_id');
-        return $stmt->execute(['id' => $id, 'user_id' => $userId]);
+        $stmt = $this->database->prepare('DELETE FROM transactions WHERE id = :id AND portfolio_id = :portfolio_id');
+        return $stmt->execute(['id' => $id, 'portfolio_id' => $portfolioId]);
     }
 
-    public function deleteByUserId(int $userId): int
+    public function deleteByPortfolioId(int $portfolioId): int
     {
-        $stmt = $this->database->prepare('DELETE FROM transactions WHERE user_id = :user_id');
-        $stmt->execute(['user_id' => $userId]);
+        $stmt = $this->database->prepare('DELETE FROM transactions WHERE portfolio_id = :portfolio_id');
+        $stmt->execute(['portfolio_id' => $portfolioId]);
         return $stmt->rowCount();
+    }
+
+    public function countByPortfolioId(int $portfolioId): int
+    {
+        $stmt = $this->database->prepare('SELECT COUNT(*) FROM transactions WHERE portfolio_id = :portfolio_id');
+        $stmt->execute(['portfolio_id' => $portfolioId]);
+        return (int) $stmt->fetchColumn();
     }
 
     public function countByUserId(int $userId): int
     {
-        $stmt = $this->database->prepare('SELECT COUNT(*) FROM transactions WHERE user_id = :user_id');
+        $stmt = $this->database->prepare('
+            SELECT COUNT(*) FROM transactions t
+            INNER JOIN portfolios p ON t.portfolio_id = p.id
+            WHERE p.user_id = :user_id
+        ');
         $stmt->execute(['user_id' => $userId]);
         return (int) $stmt->fetchColumn();
     }
 
-    //Pobiera podsumowanie holdings dla użytkownika (ilość posiadanych aktywów)
-    public function getHoldingsSummary(int $userId): array
+    /**
+     * Pobiera podsumowanie holdings dla portfela
+     */
+    public function getHoldingsSummary(int $portfolioId): array
     {
         $stmt = $this->database->prepare('
             SELECT 
@@ -205,7 +254,40 @@ class TransactionRepository extends Repository
                 COUNT(*) as transaction_count
             FROM transactions t
             INNER JOIN assets a ON t.asset_id = a.id
-            WHERE t.user_id = :user_id
+            WHERE t.portfolio_id = :portfolio_id
+            GROUP BY a.id, a.symbol, a.name, a.asset_type, a.currency, a.yahoo_symbol
+            HAVING SUM(CASE WHEN t.transaction_type = \'buy\' THEN t.quantity ELSE -t.quantity END) > 0
+            ORDER BY a.symbol
+        ');
+        $stmt->bindParam(':portfolio_id', $portfolioId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Pobiera podsumowanie holdings dla wszystkich portfeli użytkownika
+     */
+    public function getHoldingsSummaryByUserId(int $userId): array
+    {
+        $stmt = $this->database->prepare('
+            SELECT 
+                a.id as asset_id,
+                a.symbol,
+                a.name,
+                a.asset_type,
+                a.currency,
+                a.yahoo_symbol,
+                SUM(CASE WHEN t.transaction_type = \'buy\' THEN t.quantity ELSE 0 END) as total_bought,
+                SUM(CASE WHEN t.transaction_type = \'sell\' THEN t.quantity ELSE 0 END) as total_sold,
+                SUM(CASE WHEN t.transaction_type = \'buy\' THEN t.quantity * t.price ELSE 0 END) as total_cost,
+                SUM(CASE WHEN t.transaction_type = \'sell\' THEN t.quantity * t.price ELSE 0 END) as total_revenue,
+                SUM(t.commission) as total_commission,
+                COUNT(*) as transaction_count
+            FROM transactions t
+            INNER JOIN assets a ON t.asset_id = a.id
+            INNER JOIN portfolios p ON t.portfolio_id = p.id
+            WHERE p.user_id = :user_id
             GROUP BY a.id, a.symbol, a.name, a.asset_type, a.currency, a.yahoo_symbol
             HAVING SUM(CASE WHEN t.transaction_type = \'buy\' THEN t.quantity ELSE -t.quantity END) > 0
             ORDER BY a.symbol
@@ -216,8 +298,10 @@ class TransactionRepository extends Repository
         return $stmt->fetchAll();
     }
 
-    //Pobiera statystyki portfela
-    public function getPortfolioStats(int $userId): array
+    /**
+     * Pobiera statystyki portfela
+     */
+    public function getPortfolioStats(int $portfolioId): array
     {
         $stmt = $this->database->prepare('
             SELECT 
@@ -229,7 +313,31 @@ class TransactionRepository extends Repository
                 MIN(transaction_date) as first_transaction,
                 MAX(transaction_date) as last_transaction
             FROM transactions
-            WHERE user_id = :user_id
+            WHERE portfolio_id = :portfolio_id
+        ');
+        $stmt->bindParam(':portfolio_id', $portfolioId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetch() ?: [];
+    }
+
+    /**
+     * Pobiera statystyki dla wszystkich portfeli użytkownika
+     */
+    public function getStatsByUserId(int $userId): array
+    {
+        $stmt = $this->database->prepare('
+            SELECT 
+                COUNT(DISTINCT t.asset_id) as unique_assets,
+                COUNT(*) as total_transactions,
+                SUM(CASE WHEN t.transaction_type = \'buy\' THEN t.quantity * t.price + t.commission ELSE 0 END) as total_invested,
+                SUM(CASE WHEN t.transaction_type = \'sell\' THEN t.quantity * t.price - t.commission ELSE 0 END) as total_withdrawn,
+                SUM(CASE WHEN t.transaction_type = \'dividend\' THEN t.quantity * t.price ELSE 0 END) as total_dividends,
+                MIN(t.transaction_date) as first_transaction,
+                MAX(t.transaction_date) as last_transaction
+            FROM transactions t
+            INNER JOIN portfolios p ON t.portfolio_id = p.id
+            WHERE p.user_id = :user_id
         ');
         $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
         $stmt->execute();
