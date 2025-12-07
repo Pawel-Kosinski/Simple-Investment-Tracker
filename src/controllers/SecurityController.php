@@ -1,72 +1,135 @@
 <?php
 
-require_once 'AppController.php';
 require_once __DIR__ . '/../repository/UserRepository.php';
-require_once __DIR__ . '/../models/User.php';
-
+require_once 'AppController.php';
 
 class SecurityController extends AppController {
 
-    private $userRepository;
+    private UserRepository $userRepository;
 
-    public function __construct() {
-        parent::__construct();
+    public function __construct()
+    {
         $this->userRepository = new UserRepository();
     }
 
-    // TODO dekarator, który definiuje, jakie metody HTTP są dostępne
-    public function login() {
+    public function login(): void
+    {
+        if ($this->getCurrentUserId() !== null) {
+            $this->redirect('/dashboard');
+        }
 
-        if($this->isGet()) {
-            return $this->render("login");
-        } 
+        if (!$this->isPost()) {
+            $this->render('login');
+            return;
+        }
 
-        $email = $_POST["email"] ?? '';
-        $password = $_POST["password"] ?? '';
+        $email = trim(strtolower($_POST['email'] ?? ''));
+        $password = $_POST['password'] ?? '';
 
-        // Log login attempt without sending output to client (prevents "headers already sent" errors)
-        error_log('Login attempt: ' . $email);
-        // TODO get data from database
+        if (empty($email) || empty($password)) {
+            $this->render('login', ['message' => 'Wypełnij wszystkie pola']);
+            return;
+        }
 
-        // return $this->render("dashboard", ['cards' => []]);
+        $user = $this->userRepository->findByEmail($email);
 
-        $url = "http://$_SERVER[HTTP_HOST]";
-        header("Location: {$url}/dashboard");
-        exit();
+        if (!$user) {
+            $this->render('login', ['message' => 'Nieprawidłowy email lub hasło']);
+            return;
+        }
+
+        // DEBUG: log hash and verification result (remove in production)
+        error_log('Login attempt for: ' . $email);
+        error_log('Provided password length: ' . strlen($password));
+        error_log('Stored hash (first 10 chars): ' . substr($user->getPassword(), 0, 10));
+        error_log('password_verify result: ' . (password_verify($password, $user->getPassword()) ? 'true' : 'false'));
+
+        if (!password_verify($password, $user->getPassword())) {
+            $this->render('login', ['message' => 'Nieprawidłowy email lub hasło']);
+            return;
+        }
+
+        if (!$user->isEnabled()) {
+            $this->render('login', ['message' => 'Konto jest nieaktywne']);
+            return;
+        }
+
+        // Zaloguj użytkownika
+        $_SESSION['user_id'] = $user->getId();
+        $_SESSION['user_email'] = $user->getEmail();
+        $_SESSION['user_name'] = $user->getFullName();
+
+        $this->redirect('/dashboard');
     }
 
-    public function register() {
-        // TODO pobranie z formularza email i hasła
-        // TODO insert do bazy danych
-        // TODO zwrocenie informajci o pomyslnym zarejstrowaniu
-
-        if ($this->isGet()) {
-            return $this->render("register");
+    public function register(): void
+    {
+        if ($this->getCurrentUserId() !== null) {
+            $this->redirect('/dashboard');
         }
 
-        $email = $_POST["email"] ?? '';
-        $password1 = $_POST["password1"] ?? '';
-        $password2 = $_POST["password2"] ?? '';
-        $firstname = $_POST["firstname"] ?? '';
-        $lastname = $_POST["lastname"] ?? '';
-
-        if ($password1 !== $password2) {
-            return $this->render("register", ["message" => "Podane hasła nie są identyczne"]);
+        if (!$this->isPost()) {
+            $this->render('register');
+            return;
         }
 
-        $hashedPassword = password_hash($password1, PASSWORD_BCRYPT);
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $password2 = $_POST['password2'] ?? '';
+        $firstname = trim($_POST['firstname'] ?? '');
+        $lastname = trim($_POST['lastname'] ?? '');
 
-        // Create User model and populate fields expected by UserRepository
-        $user = new \App\Models\User();
-        $user->firstname = $firstname;
-        $user->lastname = $lastname;
-        $user->email = $email;
-        $user->password_hash = $hashedPassword;
-        $user->bio = '';
+        // Walidacja
+        $errors = [];
 
-        $this->userRepository->addUser($user);
-        // TODO insert to database user
+        if (empty($email)) {
+            $errors[] = 'Email jest wymagany';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Nieprawidłowy format email';
+        } elseif ($this->userRepository->emailExists($email)) {
+            $errors[] = 'Email jest już zajęty';
+        }
 
-        return $this->render("login", ["message" => "Zarejestrowano uytkownika ".$email]);
+        if (empty($password)) {
+            $errors[] = 'Hasło jest wymagane';
+        } elseif (strlen($password) < 6) {
+            $errors[] = 'Hasło musi mieć minimum 6 znaków';
+        }
+
+        if ($password !== $password2) {
+            $errors[] = 'Hasła nie są identyczne';
+        }
+
+        if (empty($firstname)) {
+            $errors[] = 'Imię jest wymagane';
+        }
+
+        if (empty($lastname)) {
+            $errors[] = 'Nazwisko jest wymagane';
+        }
+
+        if (!empty($errors)) {
+            $this->render('register', [
+                'message' => implode('<br>', $errors),
+                'email' => $email,
+                'firstname' => $firstname,
+                'lastname' => $lastname
+            ]);
+            return;
+        }
+
+        // Utwórz użytkownika
+        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+        $user = new User($email, $hashedPassword, $firstname, $lastname);
+        
+        $this->userRepository->create($user);
+
+        $this->render('login', ['message' => 'Rejestracja zakończona! Możesz się zalogować.', 'success' => true]);
+    }
+
+    public function logout(): void
+    {
+        session_destroy();
+        $this->redirect('/login');
     }
 }

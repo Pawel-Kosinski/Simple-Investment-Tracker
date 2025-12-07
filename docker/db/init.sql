@@ -68,7 +68,7 @@ CREATE INDEX idx_price_cache_fetched ON price_cache(fetched_at DESC);
 
 -- Testowy użytkownik (hasło: test123)
 INSERT INTO users (email, password, firstname, lastname) VALUES 
-('test@example.com', '$2y$10$wz2g9JrHYcF8bLGBbDkEXuJQAnl4uO9RV6cWJKcf.6uAEkhFZpU0i', 'Jan', 'Kowalski');
+('test@example.com', '$2y$10$iJxJgdeW9xx1uJDXV388eeilDdJDXxTKBWswsn0vrYvsry4CBnDwK', 'Jan', 'Kowalski');
 
 -- Portfele testowego użytkownika
 INSERT INTO portfolios (user_id, name, description, is_default) VALUES

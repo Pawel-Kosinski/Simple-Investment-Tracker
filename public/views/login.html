@@ -1,28 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Logowanie - Investment Tracker</title>
     <link rel="stylesheet" type="text/css" href="public/styles/main.css">
     <link rel="stylesheet" type="text/css" href="public/styles/login.css">
 </head>
 <body>
-    <form action="\login" method="POST">
-        <h1 id="title">LOGIN</h1>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>Simple Investment Tracker</h1>
+                <p>Zaloguj się do swojego portfela</p>
+            </div>
 
-        <?php if(isset($message)): ?>
-            <p class="message">
-                <?= $message; ?>
-            </p>
-        <?php endif; ?>
-        
-        <input name="email" type="email" placeholder="Podaj email">
-        <input name="password" type="password" placeholder="Podaj hasło">
-        <button type="submit">LOGIN</button>
+            <?php if (isset($message)): ?>
+                <div class="alert <?= isset($success) && $success ? 'alert-success' : 'alert-error' ?>">
+                    <?= $message ?>
+                </div>
+            <?php endif; ?>
 
-        <a href="\register">Zarejestruj się</a>
-    </form>
+            <form action="/login" method="POST" class="auth-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required 
+                           placeholder="jan@example.com"
+                           value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+                </div>
 
+                <div class="form-group">
+                    <label for="password">Hasło</label>
+                    <input type="password" id="password" name="password" required 
+                           placeholder="••••••••">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Zaloguj się</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Nie masz konta? <a href="/register">Zarejestruj się</a></p>
+            </div>
+
+            <div class="demo-credentials">
+                <small>Demo: test@example.com / test123</small>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
