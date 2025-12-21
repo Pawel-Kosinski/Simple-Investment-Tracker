@@ -58,6 +58,15 @@ CREATE TABLE price_cache (
     fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Historia importu
+CREATE TABLE import_history (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    xtb_operation_id BIGINT NOT NULL,
+    imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, xtb_operation_id)
+);
+
 -- Indeksy dla wydajności
 CREATE INDEX idx_portfolios_user ON portfolios(user_id);
 CREATE INDEX idx_transactions_portfolio ON transactions(portfolio_id);
@@ -74,7 +83,7 @@ INSERT INTO users (email, password, firstname, lastname) VALUES
 INSERT INTO portfolios (user_id, name, description, is_default) VALUES
 (1, 'Główny', 'Mój główny portfel inwestycyjny', TRUE),
 (1, 'Emerytura', 'Długoterminowe inwestycje na emeryturę', FALSE),
-(1, 'Spekulacje', 'Krótkoterminowe pozycje', FALSE);
+(1, 'IMPORT', 'Krótkoterminowe pozycje', FALSE);
 
 -- Przykładowe aktywa
 INSERT INTO assets (symbol, name, asset_type, currency, yahoo_symbol) VALUES
@@ -96,5 +105,4 @@ INSERT INTO transactions (portfolio_id, asset_id, transaction_type, quantity, pr
 (1, 2, 'buy', 50, 45.20, 8.00, '2024-02-10 09:45:00', 'PKO - dywidenda'),
 (2, 9, 'buy', 20, 95.30, 15.00, '2024-01-20 11:00:00', 'ETF globalny - emerytura'),
 (2, 10, 'buy', 15, 480.00, 12.00, '2024-02-15 10:00:00', 'S&P 500 ETF'),
-(3, 6, 'buy', 3, 178.50, 12.00, '2024-04-05 16:00:00', 'Apple - spekulacja'),
 (1, 1, 'sell', 5, 310.00, 4.00, '2024-06-10 13:30:00', 'Realizacja zysku');

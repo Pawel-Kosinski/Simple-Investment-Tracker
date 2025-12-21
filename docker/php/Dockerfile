@@ -32,6 +32,10 @@ RUN apk add --no-cache --virtual .build-deps $BUILD_DEPS \
 
 RUN apk add --no-cache --virtual .run-deps $RUN_DEPS
 
+# Python + pandas for Excel parsing
+RUN apk add --no-cache python3 py3-pip \
+    && pip3 install --break-system-packages pandas openpyxl
+
 RUN echo 'memory_limit = 256M' >> /usr/local/etc/php/conf.d/docker-php-memlimit.ini;
 RUN echo 'upload_max_filesize = 10M' >> /usr/local/etc/php/conf.d/docker-php-uploads.ini;
 RUN echo 'post_max_size = 10M' >> /usr/local/etc/php/conf.d/docker-php-uploads.ini;

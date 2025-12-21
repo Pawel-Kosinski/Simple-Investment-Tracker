@@ -30,7 +30,7 @@ class DashboardController extends AppController {
         // Pobierz portfele użytkownika
         $portfolios = $this->portfolioRepository->findByUserId($userId);
         
-        // Aktywny portfel (z GET lub wszystkie)
+        // Aktywny portfel
         $activePortfolioId = isset($_GET['portfolio']) ? (int) $_GET['portfolio'] : null;
         
         if ($activePortfolioId && !$this->portfolioRepository->belongsToUser($activePortfolioId, $userId)) {

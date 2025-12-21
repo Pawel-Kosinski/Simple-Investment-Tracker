@@ -3,6 +3,7 @@
 require_once 'src/controllers/SecurityController.php';
 require_once 'src/controllers/DashboardController.php';
 require_once 'src/controllers/AssetController.php';
+require_once 'src/controllers/ImportController.php';
 
 class Routing {
 
@@ -34,6 +35,26 @@ class Routing {
         'assets' => [
             'controller' => 'AssetController',
             'action' => 'index'
+        ],
+        'import' => [
+            'controller' => 'ImportController',
+            'action' => 'index'
+        ],
+        'import/upload' => [
+            'controller' => 'ImportController',
+            'action' => 'upload'
+        ],
+        'import/confirm' => [
+            'controller' => 'ImportController',
+            'action' => 'confirm'
+        ],
+        'import/cancel' => [
+            'controller' => 'ImportController',
+            'action' => 'cancel'
+        ],
+        'import/manual' => [
+            'controller' => 'ImportController',
+            'action' => 'manual'
         ],
         'api/holdings' => [
             'controller' => 'DashboardController',
