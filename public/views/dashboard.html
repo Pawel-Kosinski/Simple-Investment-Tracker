@@ -293,8 +293,10 @@
             // Oblicz statystyki zbiorcze
             $totalValue = $portfolioSummary['total_value'] ?? 0;
             $totalProfit = $portfolioSummary['total_profit'] ?? 0;
+            $currentProfit = $portfolioSummary['current_profit'] ?? 0;
             $totalCost = $portfolioSummary['total_cost'] ?? 0;
             $totalProfitPercent = $portfolioSummary['total_profit_percent'] ?? 0;
+            $daily_change_percent = $portfolioSummary['daily_change_percent'] ?? 0;
             
             // Policz walory wzrosty/spadki
             $gainers = 0;
@@ -330,14 +332,14 @@
             </div>
             <div class="stat-card">
                 <div class="stat-label">Zysk dzienny</div>
-                <div class="stat-value <?= $totalProfit >= 0 ? 'positive' : 'negative' ?>">
-                    <?= number_format($totalProfit * 0.01, 2, ',', ' ') ?>
+                <div class="stat-value <?= $daily_change_percent >= 0 ? 'positive' : 'negative' ?>">
+                    <?= number_format($daily_change_percent, 2, ',', ' ') ?>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Zysk bieżący</div>
-                <div class="stat-value <?= $totalProfit >= 0 ? 'positive' : 'negative' ?>">
-                    <?= number_format($totalProfit, 2, ',', ' ') ?>
+                <div class="stat-value <?= $currentProfit >= 0 ? 'positive' : 'negative' ?>">
+                    <?= number_format($currentProfit, 2, ',', ' ') ?>
                 </div>
             </div>
             <div class="stat-card">

@@ -2,11 +2,11 @@
 
 require_once 'src/controllers/SecurityController.php';
 require_once 'src/controllers/DashboardController.php';
+require_once 'src/controllers/AssetController.php';
 
 class Routing {
 
     public static array $routes = [
-        // Auth
         '' => [
             'controller' => 'DashboardController',
             'action' => 'index'
@@ -23,7 +23,6 @@ class Routing {
             'controller' => 'SecurityController',
             'action' => 'logout'
         ],
-        // Dashboard
         'dashboard' => [
             'controller' => 'DashboardController',
             'action' => 'index'
@@ -32,7 +31,10 @@ class Routing {
             'controller' => 'DashboardController',
             'action' => 'refreshPrices'
         ],
-        // API
+        'assets' => [
+            'controller' => 'AssetController',
+            'action' => 'index'
+        ],
         'api/holdings' => [
             'controller' => 'DashboardController',
             'action' => 'getHoldings'
@@ -45,10 +47,8 @@ class Routing {
 
     public static function run(string $path): void
     {
-        // Usuń query string z path
         $path = strtok($path, '?');
         
-        // Sprawdź czy route istnieje
         if (array_key_exists($path, self::$routes)) {
             $route = self::$routes[$path];
             $controllerName = $route['controller'];
@@ -57,7 +57,6 @@ class Routing {
             $controller = new $controllerName();
             $controller->$action();
         } else {
-            // 404 - nie znaleziono route
             http_response_code(404);
             include 'public/views/404.html';
         }

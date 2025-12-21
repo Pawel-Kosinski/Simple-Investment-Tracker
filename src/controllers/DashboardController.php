@@ -30,47 +30,59 @@ class DashboardController extends AppController {
         // Pobierz portfele użytkownika
         $portfolios = $this->portfolioRepository->findByUserId($userId);
         
-        // Aktywny portfel (z GET lub domyślny)
+        // Aktywny portfel (z GET lub wszystkie)
         $activePortfolioId = isset($_GET['portfolio']) ? (int) $_GET['portfolio'] : null;
         
         if ($activePortfolioId && !$this->portfolioRepository->belongsToUser($activePortfolioId, $userId)) {
             $activePortfolioId = null;
         }
         
-        // Pobierz dane - dla konkretnego portfela lub wszystkich
-        if ($activePortfolioId) {
-            $holdings = $this->transactionRepository->getHoldingsSummary($activePortfolioId);
-            $stats = $this->transactionRepository->getPortfolioStats($activePortfolioId);
-            $recentTransactions = $this->transactionRepository->findByPortfolioId($activePortfolioId, 5);
-        } else {
-            $holdings = $this->transactionRepository->getHoldingsSummaryByUserId($userId);
-            $stats = $this->transactionRepository->getStatsByUserId($userId);
-            $recentTransactions = $this->transactionRepository->findByUserId($userId, 5);
+        // Pobierz dane dla każdego portfela (do kart)
+        $portfolioData = [];
+        foreach ($portfolios as $portfolio) {
+            $pId = $portfolio->getId();
+            $pHoldings = $this->transactionRepository->getHoldingsSummary($pId);
+            $pPrices = $this->priceService->getPricesForHoldings($pHoldings);
+            $calculated = $this->priceService->calculatePortfolioValue($pHoldings, $pPrices);
+            $portfolioData[$pId] = $calculated['summary'];
+            
+            // DEBUG - usuń po naprawieniu
+            error_log("Portfolio $pId ({$portfolio->getName()}): holdings=" . count($pHoldings) . ", value=" . ($calculated['summary']['total_value'] ?? 'null'));
         }
 
-        // Pobierz aktualne ceny z Yahoo Finance
-        $prices = $this->priceService->getPricesForHoldings($holdings);
-        
-        // Oblicz wartość portfela z aktualnymi cenami
-        $portfolioData = $this->priceService->calculatePortfolioValue($holdings, $prices);
+        // Pobierz dane dla wybranego portfela lub wszystkich
+        if ($activePortfolioId) {
+            $holdings = $this->transactionRepository->getHoldingsSummary($activePortfolioId);
+        } else {
+            $holdings = $this->transactionRepository->getHoldingsSummaryByUserId($userId);
+        }
 
-        // Oblicz podstawowe statystyki
-        $totalInvested = (float) ($stats['total_invested'] ?? 0);
-        $totalWithdrawn = (float) ($stats['total_withdrawn'] ?? 0);
-        $totalDividends = (float) ($stats['total_dividends'] ?? 0);
+        // Pobierz aktualne ceny
+        $prices = $this->priceService->getPricesForHoldings($holdings);
+        $currentPortfolioData = $this->priceService->calculatePortfolioValue($holdings, $prices);
 
         $this->render('dashboard', [
             'portfolios' => $portfolios,
+            'portfolioData' => $portfolioData,
             'activePortfolioId' => $activePortfolioId,
-            'holdings' => $portfolioData['holdings'],
-            'portfolioSummary' => $portfolioData['summary'],
-            'stats' => $stats,
-            'recentTransactions' => $recentTransactions,
-            'totalInvested' => $totalInvested,
-            'totalWithdrawn' => $totalWithdrawn,
-            'totalDividends' => $totalDividends,
+            'holdings' => $currentPortfolioData['holdings'],
+            'portfolioSummary' => $currentPortfolioData['summary'],
             'userName' => $_SESSION['user_name'] ?? 'Użytkownik'
         ]);
+    }
+
+    public function refreshPrices(): void
+    {
+        $this->requireAuth();
+
+        $this->priceService->clearCache();
+        
+        $redirect = '/dashboard';
+        if (isset($_GET['portfolio'])) {
+            $redirect .= '?portfolio=' . $_GET['portfolio'];
+        }
+        
+        $this->redirect($redirect);
     }
 
     public function getHoldings(): void
@@ -86,7 +98,6 @@ class DashboardController extends AppController {
             $holdings = $this->transactionRepository->getHoldingsSummaryByUserId($userId);
         }
 
-        // Pobierz aktualne ceny
         $prices = $this->priceService->getPricesForHoldings($holdings);
         $portfolioData = $this->priceService->calculatePortfolioValue($holdings, $prices);
 
@@ -110,13 +121,5 @@ class DashboardController extends AppController {
         }
 
         $this->jsonResponse(['stats' => $stats]);
-    }
-
-    public function refreshPrices(): void
-    {
-        $this->requireAuth();
-
-        $this->priceService->clearCache();
-        $this->redirect('/dashboard' . (isset($_GET['portfolio']) ? '?portfolio=' . $_GET['portfolio'] : ''));
     }
 }

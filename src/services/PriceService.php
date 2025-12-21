@@ -184,60 +184,81 @@ class PriceService {
     /**
      * Oblicza wartość portfela na podstawie aktualnych cen
      */
-    public function calculatePortfolioValue(array $holdings, array $prices): array {
-        $totalValue = 0;
-        $totalCost = 0;
-        $holdingsWithPrices = [];
+public function calculatePortfolioValue(array $holdings, array $prices): array {
+    $totalValue = 0;
+    $totalCost = 0;
+    $totalRevenue = 0;
+    $investedTotal = 0;
+    $dailyChange = 0;
+    $totalDailyChange = 0;
+    $holdingsWithPrices = [];
+    
+    foreach ($holdings as $holding) {
+        $yahooSymbol = $holding['yahoo_symbol'] ?? null;
+        $quantity = (float) ($holding['total_bought'] ?? 0) - (float) ($holding['total_sold'] ?? 0);
+        $cost = (float) ($holding['total_cost'] ?? 0);
+        $revenue = (float) ($holding['total_revenue'] ?? 0);
         
-        foreach ($holdings as $holding) {
-            $yahooSymbol = $holding['yahoo_symbol'] ?? null;
-            $quantity = (float) ($holding['total_bought'] ?? 0) - (float) ($holding['total_sold'] ?? 0);
-            $cost = (float) ($holding['total_cost'] ?? 0);
+        // Oblicz średnią cenę zakupu
+        $totalBought = (float) ($holding['total_bought'] ?? 0);
+        $avgBuyPrice = $totalBought > 0 ? $cost / $totalBought : 0;
+        $investedValue = $quantity * $avgBuyPrice;
+        
+        $currentPrice = null;
+        $currentValue = null;
+        $currentProfit = null;
+        $holdingTotalProfit = null;
+        $profitPercent = null;
+        
+        if ($yahooSymbol && isset($prices[$yahooSymbol])) {
+            $priceData = $prices[$yahooSymbol];
+            $currentPrice = $priceData['price'];
+            $currentValue = $quantity * $currentPrice;
+            $currentProfit = $currentValue - $investedValue;
+            $holdingTotalProfit = $currentValue + $revenue - $cost;
+            $profitPercent = $cost > 0 ? ($holdingTotalProfit / $cost) * 100 : 0;
+            $dailyChange = ($priceData['change'] ?? 0) * $quantity;
             
-            // Oblicz średnią cenę zakupu
-            $avgBuyPrice = $quantity > 0 ? $cost / (float) $holding['total_bought'] : 0;
-            $investedValue = $quantity * $avgBuyPrice;
-            
-            $currentPrice = null;
-            $currentValue = null;
-            $profit = null;
-            $profitPercent = null;
-            
-            if ($yahooSymbol && isset($prices[$yahooSymbol])) {
-                $priceData = $prices[$yahooSymbol];
-                $currentPrice = $priceData['price'];
-                $currentValue = $quantity * $currentPrice;
-                $profit = $currentValue - $investedValue;
-                $profitPercent = $investedValue > 0 ? ($profit / $investedValue) * 100 : 0;
-                
-                $totalValue += $currentValue;
-            }
-            
-            $totalCost += $investedValue;
-            
-            $holdingsWithPrices[] = array_merge($holding, [
-                'quantity' => $quantity,
-                'avg_buy_price' => $avgBuyPrice,
-                'invested_value' => $investedValue,
-                'current_price' => $currentPrice,
-                'current_value' => $currentValue,
-                'profit' => $profit,
-                'profit_percent' => $profitPercent,
-                'price_data' => $prices[$yahooSymbol] ?? null
-            ]);
+            $totalValue += $currentValue;
+            $investedTotal += $investedValue;
         }
         
-        $totalProfit = $totalValue - $totalCost;
-        $totalProfitPercent = $totalCost > 0 ? ($totalProfit / $totalCost) * 100 : 0;
-        
-        return [
-            'holdings' => $holdingsWithPrices,
-            'summary' => [
-                'total_value' => $totalValue,
-                'total_cost' => $totalCost,
-                'total_profit' => $totalProfit,
-                'total_profit_percent' => $totalProfitPercent
-            ]
-        ];
+        $totalCost += $cost;
+        $totalRevenue += $revenue;
+        $totalDailyChange += $dailyChange;
+
+        $holdingsWithPrices[] = array_merge($holding, [
+            'quantity' => $quantity,
+            'avg_buy_price' => $avgBuyPrice,
+            'invested_value' => $investedValue,
+            'current_price' => $currentPrice,
+            'current_value' => $currentValue,
+            'current_profit' => $currentProfit,
+            'total_profit' => $holdingTotalProfit,
+            'profit_percent' => $profitPercent,
+            'price_data' => $prices[$yahooSymbol] ?? null
+        ]);
     }
+    
+    // Zysk bieżący = obecna wartość posiadanych akcji - ich koszt zakupu
+    $currentProfit = $totalValue - $investedTotal;
+
+    // Zysk całkowity = obecna wartość + przychody ze sprzedaży - całkowity koszt zakupów  
+    $totalProfit = $totalValue + $totalRevenue - $totalCost;
+    $totalProfitPercent = $totalCost > 0 ? ($totalProfit / $totalCost) * 100 : 0;
+    $totalDailyChangePercent = $totalValue > 0 ? ($totalDailyChange / ($totalValue - $totalDailyChange)) * 100 : 0;
+    
+    return [
+        'holdings' => $holdingsWithPrices,
+        'summary' => [
+            'total_value' => $totalValue,
+            'total_cost' => $totalCost,
+            'total_revenue' => $totalRevenue,
+            'current_profit' => $currentProfit,
+            'total_profit' => $totalProfit,
+            'total_profit_percent' => $totalProfitPercent,
+            'daily_change_percent' => $totalDailyChangePercent
+        ]
+    ];
+}
 }

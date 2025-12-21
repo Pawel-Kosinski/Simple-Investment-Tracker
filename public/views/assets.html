@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aktywa - Investment Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/styles/app.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="logo">Investment Tracker</h1>
+            <nav class="nav">
+                <a href="/dashboard" class="nav-link">Podsumowanie</a>
+                <a href="/assets" class="nav-link active">Aktywa</a>
+            </nav>
+            <div class="user-menu">
+                <span class="user-name"><?= htmlspecialchars($userName) ?></span>
+                <a href="/logout" class="logout-link">Wyloguj</a>
+            </div>
+        </header>
+
+        <main class="main">
+            <!-- Page Title -->
+            <div class="page-title">
+                <h2>Twoje aktywa</h2>
+                <?php if (!empty($portfolios)): ?>
+                <div class="portfolio-filter">
+                    <select onchange="window.location.href='/assets' + (this.value ? '?portfolio=' + this.value : '')">
+                        <option value="">Wszystkie portfele</option>
+                        <?php foreach ($portfolios as $portfolio): ?>
+                            <option value="<?= $portfolio->getId() ?>" <?= $activePortfolioId === $portfolio->getId() ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($portfolio->getName()) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Holdings Table -->
+            <section class="holdings-section">
+                <?php if (empty($holdings)): ?>
+                    <div class="empty-state">
+                        <p>Brak aktywów w portfelu</p>
+                        <a href="/transactions/add" class="btn btn-primary">Dodaj transakcję</a>
+                    </div>
+                <?php else: ?>
+                    <table class="holdings-table">
+                        <thead>
+                            <tr>
+                                <th class="col-symbol">Symbol</th>
+                                <th class="col-name">Nazwa</th>
+                                <th class="col-quantity">Ilość</th>
+                                <th class="col-avg-price">Śr. cena zakupu</th>
+                                <th class="col-current-price">Akt. cena</th>
+                                <th class="col-value">Wartość</th>
+                                <th class="col-profit">Zysk/Strata</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($holdings as $holding): ?>
+                                <tr>
+                                    <td class="col-symbol">
+                                        <span class="symbol-badge"><?= htmlspecialchars($holding['symbol']) ?></span>
+                                    </td>
+                                    <td class="col-name"><?= htmlspecialchars($holding['name'] ?? '—') ?></td>
+                                    <td class="col-quantity"><?= number_format($holding['quantity'], 4, ',', ' ') ?></td>
+                                    <td class="col-avg-price">
+                                        <?= number_format($holding['avg_buy_price'], 2, ',', ' ') ?>
+                                        <span class="currency"><?= $holding['currency'] ?></span>
+                                    </td>
+                                    <td class="col-current-price">
+                                        <?php if ($holding['current_price'] !== null): ?>
+                                            <?= number_format($holding['current_price'], 2, ',', ' ') ?>
+                                            <span class="currency"><?= $holding['currency'] ?></span>
+                                        <?php else: ?>
+                                            <span class="no-data">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="col-value">
+                                        <?php if ($holding['current_value'] !== null): ?>
+                                            <?= number_format($holding['current_value'], 2, ',', ' ') ?>
+                                        <?php else: ?>
+                                            <?= number_format($holding['invested_value'], 2, ',', ' ') ?>
+                                        <?php endif; ?>
+                                        <span class="currency"><?= $holding['currency'] ?></span>
+                                    </td>
+                                    <td class="col-profit <?= ($holding['current_profit'] ?? 0) >= 0 ? 'positive' : 'negative' ?>">
+                                        <?php if ($holding['current_profit'] !== null): ?>
+                                            <span class="profit-value">
+                                                <?= $holding['current_profit'] >= 0 ? '+' : '' ?><?= number_format($holding['current_profit'], 2, ',', ' ') ?>
+                                            </span>
+                                            <span class="profit-percent">
+                                                (<?= $holding['profit_percent'] >= 0 ? '+' : '' ?><?= number_format($holding['profit_percent'], 1, ',', ' ') ?>%)
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="no-data">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                        <tfoot>
+                            <tr class="totals-row">
+                                <td colspan="5" class="totals-label">Razem</td>
+                                <td class="col-value total-value">
+                                    <?= number_format($portfolioSummary['total_value'] ?? 0, 2, ',', ' ') ?> PLN
+                                </td>
+                                <td class="col-profit total-profit <?= ($portfolioSummary['total_profit'] ?? 0) >= 0 ? 'positive' : 'negative' ?>">
+                                    <?= ($portfolioSummary['total_profit'] ?? 0) >= 0 ? '+' : '' ?><?= number_format($portfolioSummary['total_profit'] ?? 0, 2, ',', ' ') ?> PLN
+                                    (<?= ($portfolioSummary['total_profit_percent'] ?? 0) >= 0 ? '+' : '' ?><?= number_format($portfolioSummary['total_profit_percent'] ?? 0, 1, ',', ' ') ?>%)
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    
+                    <div class="table-footer">
+                        <span class="update-info">Kursy z Yahoo Finance • Aktualizacja co 15 min</span>
+                        <a href="/dashboard/refresh<?= $activePortfolioId ? '?portfolio=' . $activePortfolioId : '' ?>" class="refresh-link">Odśwież kursy</a>
+                    </div>
+                <?php endif; ?>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
