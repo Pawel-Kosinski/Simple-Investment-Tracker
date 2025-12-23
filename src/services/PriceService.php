@@ -34,7 +34,7 @@ class PriceService {
     }
     
     /**
-     * Pobiera ceny dla wielu symboli naraz
+     * Pobiera ceny dla wielu symboli naraz - zawsze świeże dane (dla daily change)
      */
     public function getPrices(array $yahooSymbols): array {
         $prices = [];
@@ -42,9 +42,19 @@ class PriceService {
         foreach ($yahooSymbols as $symbol) {
             if (empty($symbol)) continue;
             
-            $price = $this->getCurrentPrice($symbol);
+            // Zawsze pobieraj świeże dane z API (dla change/daily change)
+            $price = $this->fetchFromYahoo($symbol);
             if ($price !== null) {
                 $prices[$symbol] = $price;
+                $this->saveToCache($symbol, $price['price'], $price['currency']);
+            } else {
+                // Fallback do cache jeśli API nie działa
+                $cached = $this->getFromCache($symbol, true);
+                if ($cached !== null) {
+                    $cached['change'] = 0;
+                    $cached['change_percent'] = 0;
+                    $prices[$symbol] = $cached;
+                }
             }
         }
         
@@ -65,28 +75,31 @@ class PriceService {
     private function fetchFromYahoo(string $symbol): ?array {
         $url = self::YAHOO_API_URL . urlencode($symbol) . '?interval=1d&range=1d';
         
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'GET',
-                'header' => [
-                    'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'Accept: application/json'
-                ],
-                'timeout' => 10
-            ]
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
         ]);
         
-        $response = @file_get_contents($url, false, $context);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
         
-        if ($response === false) {
-            error_log("PriceService: Failed to fetch price for $symbol");
+        if ($response === false || $httpCode !== 200) {
+            error_log("PriceService: Failed to fetch $symbol - HTTP $httpCode, Error: $error");
             return null;
         }
         
         $data = json_decode($response, true);
         
         if (!isset($data['chart']['result'][0])) {
-            error_log("PriceService: Invalid response for $symbol");
+            error_log("PriceService: Invalid response for $symbol: " . substr($response, 0, 200));
             return null;
         }
         
@@ -94,15 +107,18 @@ class PriceService {
         $meta = $result['meta'] ?? [];
         
         $price = $meta['regularMarketPrice'] ?? null;
-        $previousClose = $meta['previousClose'] ?? null;
+        $previousClose = $meta['previousClose'] ?? $meta['chartPreviousClose'] ?? null;
         $currency = $meta['currency'] ?? 'USD';
         
         if ($price === null) {
+            error_log("PriceService: No price in response for $symbol");
             return null;
         }
         
         $change = $previousClose ? ($price - $previousClose) : 0;
         $changePercent = $previousClose ? (($change / $previousClose) * 100) : 0;
+        
+        error_log("PriceService: $symbol - price=$price, prevClose=$previousClose, change=$change");
         
         return [
             'symbol' => $symbol,
