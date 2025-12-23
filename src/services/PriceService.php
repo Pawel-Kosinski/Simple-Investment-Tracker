@@ -118,16 +118,20 @@ class PriceService {
     /**
      * Pobiera cenę z cache
      */
-    private function getFromCache(string $yahooSymbol): ?array {
-        $stmt = $this->database->prepare('
+    private function getFromCache(string $yahooSymbol, bool $anyAge = false): ?array {
+        $sql = '
             SELECT pc.*, a.yahoo_symbol 
             FROM price_cache pc
             INNER JOIN assets a ON pc.asset_id = a.id
-            WHERE a.yahoo_symbol = :symbol 
-              AND pc.fetched_at > NOW() - INTERVAL \'' . self::CACHE_DURATION . ' seconds\'
-            ORDER BY pc.fetched_at DESC
-            LIMIT 1
-        ');
+            WHERE a.yahoo_symbol = :symbol';
+        
+        if (!$anyAge) {
+            $sql .= ' AND pc.fetched_at > NOW() - INTERVAL \'' . self::CACHE_DURATION . ' seconds\'';
+        }
+        
+        $sql .= ' ORDER BY pc.fetched_at DESC LIMIT 1';
+        
+        $stmt = $this->database->prepare($sql);
         $stmt->execute(['symbol' => $yahooSymbol]);
         
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -184,81 +188,111 @@ class PriceService {
     /**
      * Oblicza wartość portfela na podstawie aktualnych cen
      */
-public function calculatePortfolioValue(array $holdings, array $prices): array {
-    $totalValue = 0;
-    $totalCost = 0;
-    $totalRevenue = 0;
-    $investedTotal = 0;
-    $dailyChange = 0;
-    $totalDailyChange = 0;
-    $holdingsWithPrices = [];
-    
-    foreach ($holdings as $holding) {
-        $yahooSymbol = $holding['yahoo_symbol'] ?? null;
-        $quantity = (float) ($holding['total_bought'] ?? 0) - (float) ($holding['total_sold'] ?? 0);
-        $cost = (float) ($holding['total_cost'] ?? 0);
-        $revenue = (float) ($holding['total_revenue'] ?? 0);
+    public function calculatePortfolioValue(array $holdings, array $prices): array {
+        $totalValue = 0;
+        $totalCost = 0;
+        $totalRevenue = 0;
+        $investedTotal = 0;
+        $totalDailyChange = 0;
+        $holdingsWithPrices = [];
         
-        // Oblicz średnią cenę zakupu
-        $totalBought = (float) ($holding['total_bought'] ?? 0);
-        $avgBuyPrice = $totalBought > 0 ? $cost / $totalBought : 0;
-        $investedValue = $quantity * $avgBuyPrice;
-        
-        $currentPrice = null;
-        $currentValue = null;
-        $currentProfit = null;
-        $holdingTotalProfit = null;
-        $profitPercent = null;
-        
-        if ($yahooSymbol && isset($prices[$yahooSymbol])) {
-            $priceData = $prices[$yahooSymbol];
-            $currentPrice = $priceData['price'];
+        foreach ($holdings as $holding) {
+            $yahooSymbol = $holding['yahoo_symbol'] ?? null;
+            $quantity = (float) ($holding['total_bought'] ?? 0) - (float) ($holding['total_sold'] ?? 0);
+            $cost = (float) ($holding['total_cost'] ?? 0);
+            $revenue = (float) ($holding['total_revenue'] ?? 0);
+            
+            // Pomiń jeśli brak ilości
+            if ($quantity <= 0) {
+                continue;
+            }
+            
+            // Oblicz średnią cenę zakupu
+            $totalBought = (float) ($holding['total_bought'] ?? 0);
+            $avgBuyPrice = $totalBought > 0 ? $cost / $totalBought : 0;
+            $investedValue = $quantity * $avgBuyPrice;
+            
+            $currentPrice = null;
+            $currentValue = null;
+            $currentProfit = null;
+            $holdingTotalProfit = null;
+            $profitPercent = null;
+            $dailyChange = 0;
+            $priceSource = 'none';
+            
+            // Próba 1: cena z API
+            if ($yahooSymbol && isset($prices[$yahooSymbol])) {
+                $priceData = $prices[$yahooSymbol];
+                $currentPrice = $priceData['price'];
+                $dailyChange = ($priceData['change'] ?? 0) * $quantity;
+                $priceSource = 'api';
+            }
+            
+            // Próba 2: stary cache
+            if ($currentPrice === null && $yahooSymbol) {
+                $oldCache = $this->getFromCache($yahooSymbol, true);
+                if ($oldCache) {
+                    $currentPrice = $oldCache['price'];
+                    $priceSource = 'old_cache';
+                }
+            }
+            
+            // Próba 3: cena zakupu jako fallback
+            if ($currentPrice === null) {
+                $currentPrice = $avgBuyPrice;
+                $priceSource = 'purchase_price';
+            }
+            
+            // Oblicz wartości
             $currentValue = $quantity * $currentPrice;
             $currentProfit = $currentValue - $investedValue;
             $holdingTotalProfit = $currentValue + $revenue - $cost;
             $profitPercent = $cost > 0 ? ($holdingTotalProfit / $cost) * 100 : 0;
-            $dailyChange = ($priceData['change'] ?? 0) * $quantity;
             
             $totalValue += $currentValue;
             $investedTotal += $investedValue;
+            $totalCost += $cost;
+            $totalRevenue += $revenue;
+            $totalDailyChange += $dailyChange;
+
+            $holdingsWithPrices[] = array_merge($holding, [
+                'quantity' => $quantity,
+                'avg_buy_price' => $avgBuyPrice,
+                'invested_value' => $investedValue,
+                'current_price' => $currentPrice,
+                'current_value' => $currentValue,
+                'current_profit' => $currentProfit,
+                'total_profit' => $holdingTotalProfit,
+                'profit_percent' => $profitPercent,
+                'daily_change' => $dailyChange,
+                'price_source' => $priceSource,
+                'price_data' => $prices[$yahooSymbol] ?? null
+            ]);
         }
         
-        $totalCost += $cost;
-        $totalRevenue += $revenue;
-        $totalDailyChange += $dailyChange;
+        // Zysk bieżący = obecna wartość posiadanych akcji - ich koszt zakupu
+        $currentProfit = $totalValue - $investedTotal;
 
-        $holdingsWithPrices[] = array_merge($holding, [
-            'quantity' => $quantity,
-            'avg_buy_price' => $avgBuyPrice,
-            'invested_value' => $investedValue,
-            'current_price' => $currentPrice,
-            'current_value' => $currentValue,
-            'current_profit' => $currentProfit,
-            'total_profit' => $holdingTotalProfit,
-            'profit_percent' => $profitPercent,
-            'price_data' => $prices[$yahooSymbol] ?? null
-        ]);
+        // Zysk całkowity = obecna wartość + przychody ze sprzedaży - całkowity koszt zakupów  
+        $totalProfit = $totalValue + $totalRevenue - $totalCost;
+        $totalProfitPercent = $totalCost > 0 ? ($totalProfit / $totalCost) * 100 : 0;
+        
+        // Zmiana dzienna w procentach
+        $previousTotalValue = $totalValue - $totalDailyChange;
+        $dailyChangePercent = $previousTotalValue > 0 ? ($totalDailyChange / $previousTotalValue) * 100 : 0;
+        
+        return [
+            'holdings' => $holdingsWithPrices,
+            'summary' => [
+                'total_value' => $totalValue,
+                'total_cost' => $totalCost,
+                'total_revenue' => $totalRevenue,
+                'current_profit' => $currentProfit,
+                'total_profit' => $totalProfit,
+                'total_profit_percent' => $totalProfitPercent,
+                'daily_change' => $totalDailyChange,
+                'daily_change_percent' => $dailyChangePercent
+            ]
+        ];
     }
-    
-    // Zysk bieżący = obecna wartość posiadanych akcji - ich koszt zakupu
-    $currentProfit = $totalValue - $investedTotal;
-
-    // Zysk całkowity = obecna wartość + przychody ze sprzedaży - całkowity koszt zakupów  
-    $totalProfit = $totalValue + $totalRevenue - $totalCost;
-    $totalProfitPercent = $totalCost > 0 ? ($totalProfit / $totalCost) * 100 : 0;
-    $totalDailyChangePercent = $totalValue > 0 ? ($totalDailyChange / ($totalValue - $totalDailyChange)) * 100 : 0;
-    
-    return [
-        'holdings' => $holdingsWithPrices,
-        'summary' => [
-            'total_value' => $totalValue,
-            'total_cost' => $totalCost,
-            'total_revenue' => $totalRevenue,
-            'current_profit' => $currentProfit,
-            'total_profit' => $totalProfit,
-            'total_profit_percent' => $totalProfitPercent,
-            'daily_change_percent' => $totalDailyChangePercent
-        ]
-    ];
-}
 }

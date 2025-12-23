@@ -296,14 +296,15 @@
             $currentProfit = $portfolioSummary['current_profit'] ?? 0;
             $totalCost = $portfolioSummary['total_cost'] ?? 0;
             $totalProfitPercent = $portfolioSummary['total_profit_percent'] ?? 0;
-            $daily_change_percent = $portfolioSummary['daily_change_percent'] ?? 0;
+            $dailyChange = $portfolioSummary['daily_change'] ?? 0;
+            $dailyChangePercent = $portfolioSummary['daily_change_percent'] ?? 0;
             
             // Policz walory wzrosty/spadki
             $gainers = 0;
             $losers = 0;
             foreach ($holdings ?? [] as $h) {
-                if (($h['profit'] ?? 0) > 0) $gainers++;
-                elseif (($h['profit'] ?? 0) < 0) $losers++;
+                if (($h['current_profit'] ?? 0) > 0) $gainers++;
+                elseif (($h['current_profit'] ?? 0) < 0) $losers++;
             }
         ?>
 
@@ -314,8 +315,8 @@
             </div>
             <div class="stat-card">
                 <div class="stat-label">Zmiana dzienna</div>
-                <div class="stat-value <?= $totalProfitPercent >= 0 ? 'positive' : 'negative' ?>">
-                    <?= $totalProfitPercent >= 0 ? '+' : '' ?><?= number_format($totalProfitPercent, 2, ',', ' ') ?> %
+                <div class="stat-value <?= $dailyChangePercent >= 0 ? 'positive' : 'negative' ?>">
+                    <?= $dailyChangePercent >= 0 ? '+' : '' ?><?= number_format($dailyChangePercent, 2, ',', ' ') ?> %
                 </div>
             </div>
             <div class="stat-card">
@@ -332,8 +333,8 @@
             </div>
             <div class="stat-card">
                 <div class="stat-label">Zysk dzienny</div>
-                <div class="stat-value <?= $daily_change_percent >= 0 ? 'positive' : 'negative' ?>">
-                    <?= number_format($daily_change_percent, 2, ',', ' ') ?>
+                <div class="stat-value <?= $dailyChange >= 0 ? 'positive' : 'negative' ?>">
+                    <?= $dailyChange >= 0 ? '+' : '' ?><?= number_format($dailyChange, 2, ',', ' ') ?>
                 </div>
             </div>
             <div class="stat-card">
@@ -370,6 +371,8 @@
                             $pValue = $pData['total_value'] ?? 0;
                             $pProfit = $pData['total_profit'] ?? 0;
                             $pProfitPercent = $pData['total_profit_percent'] ?? 0;
+                            $pDailyChange = $pData['daily_change'] ?? 0;
+                            $pDailyChangePercent = $pData['daily_change_percent'] ?? 0;
                         ?>
                         <a href="/assets?portfolio=<?= $portfolio->getId() ?>" class="portfolio-card">
                             <div class="portfolio-header">
@@ -379,7 +382,7 @@
 
                             <div class="portfolio-badges">
                                 <span class="badge <?= $pProfitPercent >= 0 ? 'positive' : 'negative' ?>">
-                                    <?= $pProfitPercent >= 0 ? '+' : '' ?><?= number_format($pProfitPercent, 0) ?> %
+                                    <?= $pProfitPercent >= 0 ? '+' : '' ?><?= number_format($pProfitPercent, 1) ?> %
                                 </span>
                                 <span class="profit-text <?= $pProfit >= 0 ? 'positive' : 'negative' ?>">
                                     <?= $pProfit >= 0 ? '+' : '' ?><?= number_format($pProfit, 2, ',', ' ') ?> PLN
@@ -389,26 +392,26 @@
                             <div class="portfolio-stats">
                                 <div class="portfolio-stat-row">
                                     <span class="portfolio-stat-label">Zmiana dzienna</span>
-                                    <span class="portfolio-stat-value badge <?= $pProfitPercent >= 0 ? 'positive' : 'negative' ?>">
-                                        <?= $pProfitPercent >= 0 ? '+' : '' ?><?= number_format($pProfitPercent * 0.03, 2) ?> %
+                                    <span class="portfolio-stat-value badge <?= $pDailyChangePercent >= 0 ? 'positive' : 'negative' ?>">
+                                        <?= $pDailyChangePercent >= 0 ? '+' : '' ?><?= number_format($pDailyChangePercent, 2) ?> %
                                     </span>
                                 </div>
                                 <div class="portfolio-stat-row">
-                                    <span class="portfolio-stat-label">Zmiana miesięczna</span>
-                                    <span class="portfolio-stat-value badge <?= $pProfitPercent >= 0 ? 'positive' : 'negative' ?>">
-                                        <?= $pProfitPercent >= 0 ? '+' : '' ?><?= number_format($pProfitPercent * 0.08, 2) ?> %
+                                    <span class="portfolio-stat-label">Zysk dzienny</span>
+                                    <span class="portfolio-stat-value badge <?= $pDailyChange >= 0 ? 'positive' : 'negative' ?>">
+                                        <?= $pDailyChange >= 0 ? '+' : '' ?><?= number_format($pDailyChange, 2) ?> PLN
                                     </span>
                                 </div>
                                 <div class="portfolio-stat-row">
-                                    <span class="portfolio-stat-label">Zmiana roczna</span>
-                                    <span class="portfolio-stat-value badge <?= $pProfitPercent >= 0 ? 'positive' : 'negative' ?>">
-                                        <?= $pProfitPercent >= 0 ? '+' : '' ?><?= number_format($pProfitPercent * 0.46, 2) ?> %
+                                    <span class="portfolio-stat-label">Zysk całkowity</span>
+                                    <span class="portfolio-stat-value badge <?= $pProfit >= 0 ? 'positive' : 'negative' ?>">
+                                        <?= $pProfit >= 0 ? '+' : '' ?><?= number_format($pProfit, 2) ?> PLN
                                     </span>
                                 </div>
                                 <div class="portfolio-stat-row">
-                                    <span class="portfolio-stat-label">Śr. roczna stopa</span>
+                                    <span class="portfolio-stat-label">Stopa zwrotu</span>
                                     <span class="portfolio-stat-value badge <?= $pProfitPercent >= 0 ? 'positive' : 'negative' ?>">
-                                        <?= $pProfitPercent >= 0 ? '+' : '' ?><?= number_format($pProfitPercent * 0.32, 2) ?> %
+                                        <?= $pProfitPercent >= 0 ? '+' : '' ?><?= number_format($pProfitPercent, 2) ?> %
                                     </span>
                                 </div>
                             </div>
