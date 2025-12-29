@@ -122,4 +122,9 @@ class Asset {
     {
         return $this->assetType === 'crypto';
     }
+
+    public function isBond(): bool
+    {
+        return $this->assetType === 'bond';
+    }
 }

@@ -166,6 +166,60 @@ class PriceService {
     }
     
     /**
+     * Oblicza narosłe odsetki dla obligacji
+     */
+    private function calculateAccruedInterest(array $holding): float
+    {
+        // Jeśli brak danych o obligacji, zwróć 0
+        if (empty($holding['first_purchase_date']) || 
+            (empty($holding['first_year_rate']) && empty($holding['interest_rate']))) {
+            return 0.0;
+        }
+        
+        $purchaseDate = new DateTime($holding['first_purchase_date']);
+        $today = new DateTime();
+        $daysHeld = $purchaseDate->diff($today)->days;
+        
+        // Obligacje stałoprocentowe (OTS, TOS)
+        if (!empty($holding['interest_rate'])) {
+            $annualRate = $holding['interest_rate'];
+            $accruedInterest = ($daysHeld / 365.0) * $annualRate;
+            return round($accruedInterest, 2);
+        }
+        
+        // Obligacje ze zmiennym/indeksowanym oprocentowaniem (COI, EDO, ROR, DOR, ROS, ROD)
+        if (!empty($holding['first_year_rate'])) {
+            // Dla uproszczenia: pierwszy rok używamy first_year_rate
+            // (właściwa implementacja wymagałaby danych o inflacji/stopie NBP)
+            $firstYearRate = $holding['first_year_rate'];
+            
+            // Jeśli minęło mniej niż rok, liczymy proporcjonalnie
+            if ($daysHeld <= 365) {
+                $accruedInterest = ($daysHeld / 365.0) * $firstYearRate;
+            } else {
+                // Po pierwszym roku: 
+                // Uproszczenie - używamy first_year_rate + marża jako szacunek
+                // (w rzeczywistości trzeba by pobrać dane o inflacji/NBP)
+                $yearsHeld = $daysHeld / 365.0;
+                $margin = $holding['interest_margin'] ?? 0;
+                $estimatedRate = $firstYearRate; // uproszczenie
+                
+                if ($margin > 0) {
+                    // Dla kolejnych lat: zakładamy że stopa to średnio first_year_rate
+                    // (to uproszczenie - w rzeczywistości potrzebne byłyby dane o inflacji)
+                    $accruedInterest = $yearsHeld * $estimatedRate;
+                } else {
+                    $accruedInterest = $yearsHeld * $firstYearRate;
+                }
+            }
+            
+            return round($accruedInterest, 2);
+        }
+        
+        return 0.0;
+    }
+    
+    /**
      * Zapisuje cenę do cache
      */
     private function saveToCache(string $yahooSymbol, float $price, string $currency): void {
@@ -236,8 +290,14 @@ class PriceService {
             $dailyChange = 0;
             $priceSource = 'none';
             
-            // Próba 1: cena z API
-            if ($yahooSymbol && isset($prices[$yahooSymbol])) {
+            // Dla obligacji: wartość nominalna + narosłe odsetki
+            if (isset($holding['asset_type']) && $holding['asset_type'] === 'bond') {
+                $accruedInterest = $this->calculateAccruedInterest($holding);
+                $currentPrice = 100.00 + $accruedInterest; // wartość nominalna + narosłe odsetki
+                $priceSource = 'bond_accrued';
+            }
+            // Dla akcji i ETF: próba pobrania ceny z API
+            elseif ($yahooSymbol && isset($prices[$yahooSymbol])) {
                 $priceData = $prices[$yahooSymbol];
                 $currentPrice = $priceData['price'];
                 $dailyChange = ($priceData['change'] ?? 0) * $quantity;

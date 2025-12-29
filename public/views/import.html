@@ -528,7 +528,279 @@
                     </button>
                 </form>
             </div>
-        </div>
+
+            <!-- Simple Bond Entry Card - NO AJAX -->
+            <div class="card">
+                <h2 class="card-title">Dodaj obligację skarbową</h2>
+                <p style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">
+                    Wpisz <strong>kod obligacji</strong> (np. EDO0935) - typ i daty wypełnią się automatycznie
+                </p>
+                <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 1rem;">
+                    💡 Oprocentowanie znajdziesz w <a href="https://www.obligacjeskarbowe.pl" target="_blank" style="color: #16a34a; text-decoration: underline;">liście emisyjnym</a> swojej obligacji
+                </p>
+                
+                <form action="/bonds/add" method="POST" id="bond-form">
+                    <!-- Kod obligacji -->
+                    <div class="form-group">
+                        <label class="form-label">Kod obligacji *</label>
+                        <input type="text" 
+                               name="bond_code" 
+                               id="bond-code-input" 
+                               class="form-input" 
+                               placeholder="np. EDO0935, COI1229, TOS1228"
+                               style="text-transform: uppercase;"
+                               required>
+                        <small id="bond-info" style="color: #16a34a; display: none;"></small>
+                        <small id="bond-error" style="color: #dc2626; display: none;"></small>
+                    </div>
+
+                    <!-- Podstawowe dane -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Portfel *</label>
+                            <select name="portfolio_id" class="form-select" required>
+                                <option value="">Wybierz portfel...</option>
+                                <?php foreach ($portfolios as $portfolio): ?>
+                                    <option value="<?= $portfolio->getId() ?>">
+                                        <?= htmlspecialchars($portfolio->getName()) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Data zakupu *</label>
+                            <input type="date" name="purchase_date" class="form-input" value="<?= date('Y-m-d') ?>" required>
+                        </div>
+                    </div>
+
+                    <!-- Oprocentowanie - dynamiczne pola -->
+                    <div id="rate-fields" style="display: none;">
+                        <div style="background: #fef3c7; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.875rem;">
+                            <strong>⚠️ Wpisz oprocentowanie z listu emisyjnego</strong><br>
+                            <span id="rate-instruction"></span>
+                        </div>
+
+                        <!-- Dla OTS, TOS -->
+                        <div id="fixed-rate-field" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label">Stała stopa % *</label>
+                                <input type="number" name="interest_rate" id="interest-rate" class="form-input" step="0.01" min="0" placeholder="np. 4.65">
+                            </div>
+                        </div>
+
+                        <!-- Dla COI, EDO, ROS, ROD, ROR, DOR -->
+                        <div id="variable-rate-fields" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Stopa pierwszego okresu % *</label>
+                                    <input type="number" name="first_year_rate" id="first-year-rate" class="form-input" step="0.01" min="0" placeholder="np. 5.60">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Marża % *</label>
+                                    <input type="number" name="interest_margin" id="interest-margin" class="form-input" step="0.01" min="0" placeholder="np. 2.00">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ilość i cena -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Ilość (sztuki) *</label>
+                            <input type="number" name="quantity" class="form-input" step="1" min="1" value="10" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Cena zakupu (PLN) *</label>
+                            <input type="number" name="price" class="form-input" step="0.01" min="0.01" value="100.00" required>
+                            <small style="color: #64748b;">Zwykły zakup: 100 PLN, zamiana: 99.90 PLN</small>
+                        </div>
+                    </div>
+
+                    <!-- Ukryte pola -->
+                    <input type="hidden" name="bond_type" id="bond-type">
+                    <input type="hidden" name="issue_date" id="issue-date">
+                    <input type="hidden" name="maturity_date" id="maturity-date">
+                    <input type="hidden" name="interest_frequency" value="annual">
+
+                    <button type="submit" class="btn btn-primary btn-block" id="submit-btn" disabled>
+                        Dodaj obligację
+                    </button>
+                </form>
+            </div>
+
+            <script>
+                let debounceTimer = null;
+
+                function parseBondCode(bondCode) {
+                    // Usuń spacje i uppercase
+                    bondCode = bondCode.trim().toUpperCase();
+                    
+                    // Wzorzec: 3-4 litery + 4 cyfry (MMYY)
+                    const match = bondCode.match(/^([A-Z]{3,4})(\d{2})(\d{2})$/);
+                    
+                    if (!match) {
+                        return null;
+                    }
+                    
+                    const type = match[1];
+                    const month = match[2];
+                    const year = '20' + match[3];
+                    
+                    // Sprawdź poprawność typu
+                    const validTypes = ['OTS', 'ROR', 'DOR', 'TOS', 'COI', 'EDO', 'ROS', 'ROD'];
+                    if (!validTypes.includes(type)) {
+                        return null;
+                    }
+                    
+                    // Data wykupu
+                    const maturityDate = year + '-' + month + '-01';
+                    
+                    // Oblicz datę emisji (lata wstecz)
+                    let yearsBack = 0;
+                    switch(type) {
+                        case 'EDO':
+                        case 'ROD':
+                            yearsBack = 10;
+                            break;
+                        case 'ROS':
+                            yearsBack = 6;
+                            break;
+                        case 'COI':
+                            yearsBack = 4;
+                            break;
+                        case 'TOS':
+                            yearsBack = 3;
+                            break;
+                        case 'DOR':
+                            yearsBack = 2;
+                            break;
+                        case 'ROR':
+                            yearsBack = 1;
+                            break;
+                        case 'OTS':
+                            yearsBack = 0;
+                            break;
+                    }
+                    
+                    const issueYear = parseInt(year) - yearsBack;
+                    const issueDate = issueYear + '-' + month + '-01';
+                    
+                    // Określ rate_base
+                    let rateBase = null;
+                    if (['COI', 'EDO', 'ROS', 'ROD'].includes(type)) {
+                        rateBase = 'inflation';
+                    } else if (['ROR', 'DOR'].includes(type)) {
+                        rateBase = 'nbp_rate';
+                    }
+                    
+                    return {
+                        type: type,
+                        maturity_date: maturityDate,
+                        issue_date: issueDate,
+                        rate_base: rateBase
+                    };
+                }
+
+                function handleBondCodeInput() {
+                    const input = document.getElementById('bond-code-input');
+                    const code = input.value.trim().toUpperCase();
+                    const bondInfo = document.getElementById('bond-info');
+                    const bondError = document.getElementById('bond-error');
+                    const submitBtn = document.getElementById('submit-btn');
+                    const rateFields = document.getElementById('rate-fields');
+                    
+                    // Reset
+                    bondInfo.style.display = 'none';
+                    bondError.style.display = 'none';
+                    rateFields.style.display = 'none';
+                    submitBtn.disabled = true;
+                    
+                    if (code.length < 6) return;
+                    
+                    const parsed = parseBondCode(code);
+                    
+                    if (!parsed) {
+                        bondError.textContent = 'Nieprawidłowy kod obligacji (np. EDO0935, COI1229)';
+                        bondError.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Wypełnij ukryte pola
+                    document.getElementById('bond-type').value = parsed.type;
+                    document.getElementById('issue-date').value = parsed.issue_date;
+                    document.getElementById('maturity-date').value = parsed.maturity_date;
+                    
+                    // Pokaż info
+                    const typeNames = {
+                        'OTS': '3-miesięczne',
+                        'ROR': 'Roczne zmienne (NBP)',
+                        'DOR': '2-letnie zmienne (NBP)',
+                        'TOS': '3-letnie stałe',
+                        'COI': '4-letnie indeksowane',
+                        'EDO': '10-letnie emerytalne',
+                        'ROS': '6-letnie rodzinne',
+                        'ROD': '12-letnie rodzinne'
+                    };
+                    
+                    const maturityDate = new Date(parsed.maturity_date);
+                    const maturityStr = maturityDate.toLocaleDateString('pl-PL', { year: 'numeric', month: 'long' });
+                    
+                    bondInfo.innerHTML = `✓ ${typeNames[parsed.type]} • Wykup: ${maturityStr}`;
+                    bondInfo.style.display = 'block';
+                    
+                    // Pokaż odpowiednie pola oprocentowania
+                    showRateFields(parsed.type);
+                    
+                    submitBtn.disabled = false;
+                }
+
+                function showRateFields(type) {
+                    const rateFields = document.getElementById('rate-fields');
+                    const fixedRateField = document.getElementById('fixed-rate-field');
+                    const variableRateFields = document.getElementById('variable-rate-fields');
+                    const rateInstruction = document.getElementById('rate-instruction');
+                    const interestRate = document.getElementById('interest-rate');
+                    const firstYearRate = document.getElementById('first-year-rate');
+                    const interestMargin = document.getElementById('interest-margin');
+                    
+                    // Reset
+                    fixedRateField.style.display = 'none';
+                    variableRateFields.style.display = 'none';
+                    interestRate.required = false;
+                    firstYearRate.required = false;
+                    interestMargin.required = false;
+                    
+                    rateFields.style.display = 'block';
+                    
+                    if (type === 'OTS' || type === 'TOS') {
+                        // Stałe oprocentowanie
+                        fixedRateField.style.display = 'block';
+                        interestRate.required = true;
+                        rateInstruction.textContent = 'Dla ' + type + ': znajdź "oprocentowanie" w liście emisyjnym';
+                    } else if (type === 'ROR' || type === 'DOR') {
+                        // Zmienne NBP
+                        variableRateFields.style.display = 'block';
+                        firstYearRate.required = true;
+                        interestMargin.required = true;
+                        rateInstruction.innerHTML = 'Dla ' + type + ': znajdź "oprocentowanie w pierwszym okresie" oraz "marżę" w liście emisyjnym<br>Potem: stopa NBP + marża';
+                    } else {
+                        // Indeksowane inflacją
+                        variableRateFields.style.display = 'block';
+                        firstYearRate.required = true;
+                        interestMargin.required = true;
+                        rateInstruction.innerHTML = 'Dla ' + type + ': znajdź "oprocentowanie w pierwszym roku" oraz "marżę" w liście emisyjnym<br>Potem: inflacja + marża';
+                    }
+                }
+
+                // Debounced input
+                document.getElementById('bond-code-input').addEventListener('input', function() {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(handleBondCodeInput, 300);
+                });
+
+                // Parse on blur
+                document.getElementById('bond-code-input').addEventListener('blur', handleBondCodeInput);
+            </script>
 
         <?php else: ?>
         <!-- Preview Section -->

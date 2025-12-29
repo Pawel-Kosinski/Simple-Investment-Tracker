@@ -58,6 +58,23 @@ CREATE TABLE price_cache (
     fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Obligacje skarbowe (dodatkowe szczegóły dla asset_type='bond')
+CREATE TABLE bonds (
+    id SERIAL PRIMARY KEY,
+    asset_id INTEGER UNIQUE NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+    bond_code VARCHAR(50) NOT NULL, -- np. 'DOS0527', 'COI0128'
+    bond_type VARCHAR(50) NOT NULL, -- 'DOS', 'COI', 'EDO', 'TOS', 'ROD'
+    issue_date DATE NOT NULL,
+    maturity_date DATE NOT NULL,
+    interest_rate DECIMAL(6,4), -- stała stopa procentowa (dla DOS, TOS)
+    first_year_rate DECIMAL(6,4), -- oprocentowanie w pierwszym okresie (dla COI, EDO, ROS, ROD)
+    interest_margin DECIMAL(6,4), -- marża (dla COI - relatywna do inflacji)
+    interest_frequency VARCHAR(20) DEFAULT 'monthly', -- 'monthly', 'quarterly', 'annual'
+    rate_base VARCHAR(20), -- 'inflation' dla COI/EDO/ROS/ROD, 'nbp_rate' dla ROR/DOR, NULL dla OTS/TOS
+    nominal_value DECIMAL(15,2) DEFAULT 100.00, -- wartość nominalna (standardowo 100 PLN)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Historia importu
 CREATE TABLE import_history (
     id SERIAL PRIMARY KEY,
@@ -74,6 +91,7 @@ CREATE INDEX idx_transactions_asset ON transactions(asset_id);
 CREATE INDEX idx_transactions_date ON transactions(transaction_date DESC);
 CREATE INDEX idx_price_cache_asset ON price_cache(asset_id);
 CREATE INDEX idx_price_cache_fetched ON price_cache(fetched_at DESC);
+CREATE INDEX idx_bonds_asset ON bonds(asset_id);
 
 -- Testowy użytkownik (hasło: test123)
 INSERT INTO users (email, password, firstname, lastname) VALUES 
@@ -81,28 +99,13 @@ INSERT INTO users (email, password, firstname, lastname) VALUES
 
 -- Portfele testowego użytkownika
 INSERT INTO portfolios (user_id, name, description, is_default) VALUES
-(1, 'Główny', 'Mój główny portfel inwestycyjny', TRUE),
-(1, 'Emerytura', 'Długoterminowe inwestycje na emeryturę', FALSE),
 (1, 'IMPORT', 'Krótkoterminowe pozycje', FALSE);
 
 -- Przykładowe aktywa
-INSERT INTO assets (symbol, name, asset_type, currency, yahoo_symbol) VALUES
-('CDR', 'CD Projekt RED', 'stock', 'PLN', 'CDR.WA'),
-('PKO', 'PKO Bank Polski', 'stock', 'PLN', 'PKO.WA'),
-('PZU', 'PZU SA', 'stock', 'PLN', 'PZU.WA'),
-('KGH', 'KGHM Polska Miedź', 'stock', 'PLN', 'KGH.WA'),
-('PKN', 'PKN Orlen', 'stock', 'PLN', 'PKN.WA'),
-('AAPL.US', 'Apple Inc.', 'stock', 'USD', 'AAPL'),
-('MSFT.US', 'Microsoft Corporation', 'stock', 'USD', 'MSFT'),
-('NVDA.US', 'NVIDIA Corporation', 'stock', 'USD', 'NVDA'),
-('VWRA.UK', 'Vanguard FTSE All-World ETF', 'etf', 'USD', 'VWRA.L'),
-('CSPX.UK', 'iShares Core S&P 500 ETF', 'etf', 'USD', 'CSPX.L');
 
 -- Przykładowe transakcje (portfolio_id: 1=Główny, 2=Emerytura, 3=Spekulacje)
-INSERT INTO transactions (portfolio_id, asset_id, transaction_type, quantity, price, commission, transaction_date, notes) VALUES
-(1, 1, 'buy', 10, 285.50, 5.00, '2024-01-15 10:30:00', 'Pierwsza inwestycja w CDR'),
-(1, 1, 'buy', 5, 270.00, 3.50, '2024-03-20 14:15:00', 'Dokupienie na spadku'),
-(1, 2, 'buy', 50, 45.20, 8.00, '2024-02-10 09:45:00', 'PKO - dywidenda'),
-(2, 9, 'buy', 20, 95.30, 15.00, '2024-01-20 11:00:00', 'ETF globalny - emerytura'),
-(2, 10, 'buy', 15, 480.00, 12.00, '2024-02-15 10:00:00', 'S&P 500 ETF'),
-(1, 1, 'sell', 5, 310.00, 4.00, '2024-06-10 13:30:00', 'Realizacja zysku');
+
+-- Usuń stare dane obligacji
+DELETE FROM transactions WHERE asset_id IN (11, 12);
+DELETE FROM bonds WHERE asset_id IN (11, 12);
+DELETE FROM assets WHERE id IN (11, 12);

@@ -6,6 +6,55 @@
     <title>Aktywa - Investment Tracker</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/styles/app.css">
+    <style>
+     /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 2rem;
+            background: #1a1a1a;
+            color: white;
+        }
+
+        .logo {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .nav {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: white;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-name {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+
+        .logout-link {
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+    </style>
 </head>
 <body>
     <div class="app">
@@ -15,6 +64,7 @@
             <nav class="nav">
                 <a href="/dashboard" class="nav-link">Podsumowanie</a>
                 <a href="/assets" class="nav-link active">Aktywa</a>
+                <a href="/import" class="nav-link">Import</a>
             </nav>
             <div class="user-menu">
                 <span class="user-name"><?= htmlspecialchars($userName) ?></span>
