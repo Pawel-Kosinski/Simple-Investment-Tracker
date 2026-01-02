@@ -79,6 +79,7 @@ CREATE TABLE bonds (
 CREATE TABLE import_history (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    asset_id INTEGER REFERENCES assets(id) ON DELETE CASCADE,
     xtb_operation_id BIGINT NOT NULL,
     imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, xtb_operation_id)
@@ -109,3 +110,14 @@ INSERT INTO portfolios (user_id, name, description, is_default) VALUES
 DELETE FROM transactions WHERE asset_id IN (11, 12);
 DELETE FROM bonds WHERE asset_id IN (11, 12);
 DELETE FROM assets WHERE id IN (11, 12);
+
+-- Tabela cache kursów walut
+CREATE TABLE IF NOT EXISTS currency_cache (
+    id SERIAL PRIMARY KEY,
+    currency VARCHAR(10) NOT NULL,
+    rate DECIMAL(12,6) NOT NULL,
+    fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_currency_cache_currency ON currency_cache(currency);
+CREATE INDEX idx_currency_cache_fetched_at ON currency_cache(fetched_at);

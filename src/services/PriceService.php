@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../repository/AssetRepository.php';
+require_once __DIR__ . '/CurrencyService.php';
 
 class PriceService {
     
@@ -8,9 +9,11 @@ class PriceService {
     private const YAHOO_API_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/';
     
     private PDO $database;
+    private CurrencyService $currencyService;
     
     public function __construct() {
         $this->database = Database::getInstance()->connect();
+        $this->currencyService = new CurrencyService();
     }
     
     /**
@@ -325,11 +328,30 @@ class PriceService {
             $holdingTotalProfit = $currentValue + $revenue - $cost;
             $profitPercent = $cost > 0 ? ($holdingTotalProfit / $cost) * 100 : 0;
             
-            $totalValue += $currentValue;
-            $investedTotal += $investedValue;
-            $totalCost += $cost;
-            $totalRevenue += $revenue;
-            $totalDailyChange += $dailyChange;
+            // Przelicz na PLN
+            $currency = $holding['currency'] ?? 'PLN';
+            try {
+                $exchangeRate = $this->currencyService->getExchangeRate($currency);
+                // DEBUG
+                error_log("CURRENCY DEBUG: Symbol={$holding['symbol']}, Currency=$currency, Rate=$exchangeRate");
+            } catch (Exception $e) {
+                // Fallback jeśli CurrencyService nie działa
+                error_log("CurrencyService error for $currency: " . $e->getMessage());
+                $exchangeRate = $currency === 'PLN' ? 1.0 : 4.0; // fallback
+            }
+            
+            $currentValuePLN = $currentValue * $exchangeRate;
+            $investedValuePLN = $investedValue * $exchangeRate;
+            $currentProfitPLN = $currentProfit * $exchangeRate;
+            $holdingTotalProfitPLN = $holdingTotalProfit * $exchangeRate;
+            $dailyChangePLN = $dailyChange * $exchangeRate;
+            
+            // Sumuj w PLN
+            $totalValue += $currentValuePLN;
+            $investedTotal += $investedValuePLN;
+            $totalCost += $cost * $exchangeRate;
+            $totalRevenue += $revenue * $exchangeRate;
+            $totalDailyChange += $dailyChangePLN;
 
             $holdingsWithPrices[] = array_merge($holding, [
                 'quantity' => $quantity,
@@ -342,6 +364,14 @@ class PriceService {
                 'profit_percent' => $profitPercent,
                 'daily_change' => $dailyChange,
                 'price_source' => $priceSource,
+                // Dodane: wartości w PLN
+                'currency' => $currency,
+                'exchange_rate' => $exchangeRate,
+                'current_value_pln' => $currentValuePLN,
+                'invested_value_pln' => $investedValuePLN,
+                'current_profit_pln' => $currentProfitPLN,
+                'total_profit_pln' => $holdingTotalProfitPLN,
+                'daily_change_pln' => $dailyChangePLN,
                 'price_data' => $prices[$yahooSymbol] ?? null
             ]);
         }

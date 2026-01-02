@@ -251,11 +251,21 @@ class TransactionRepository extends Repository
                 SUM(CASE WHEN t.transaction_type = \'buy\' THEN t.quantity * t.price ELSE 0 END) as total_cost,
                 SUM(CASE WHEN t.transaction_type = \'sell\' THEN t.quantity * t.price ELSE 0 END) as total_revenue,
                 SUM(t.commission) as total_commission,
-                COUNT(*) as transaction_count
+                COUNT(*) as transaction_count,
+                MIN(CASE WHEN t.transaction_type = \'buy\' THEN t.transaction_date END) as first_purchase_date,
+                b.first_year_rate,
+                b.interest_rate,
+                b.interest_margin,
+                b.rate_base,
+                b.bond_type,
+                b.issue_date
             FROM transactions t
             INNER JOIN assets a ON t.asset_id = a.id
+            LEFT JOIN bonds b ON a.id = b.asset_id
             WHERE t.portfolio_id = :portfolio_id
-            GROUP BY a.id, a.symbol, a.name, a.asset_type, a.currency, a.yahoo_symbol
+            GROUP BY a.id, a.symbol, a.name, a.asset_type, a.currency, a.yahoo_symbol,
+                     b.first_year_rate, b.interest_rate, b.interest_margin, b.rate_base,
+                     b.bond_type, b.issue_date
             HAVING SUM(CASE WHEN t.transaction_type = \'buy\' THEN t.quantity ELSE -t.quantity END) > 0
             ORDER BY a.symbol
         ');
@@ -283,12 +293,22 @@ class TransactionRepository extends Repository
                 SUM(CASE WHEN t.transaction_type = \'buy\' THEN t.quantity * t.price ELSE 0 END) as total_cost,
                 SUM(CASE WHEN t.transaction_type = \'sell\' THEN t.quantity * t.price ELSE 0 END) as total_revenue,
                 SUM(t.commission) as total_commission,
-                COUNT(*) as transaction_count
+                COUNT(*) as transaction_count,
+                MIN(CASE WHEN t.transaction_type = \'buy\' THEN t.transaction_date END) as first_purchase_date,
+                b.first_year_rate,
+                b.interest_rate,
+                b.interest_margin,
+                b.rate_base,
+                b.bond_type,
+                b.issue_date
             FROM transactions t
             INNER JOIN assets a ON t.asset_id = a.id
             INNER JOIN portfolios p ON t.portfolio_id = p.id
+            LEFT JOIN bonds b ON a.id = b.asset_id
             WHERE p.user_id = :user_id
-            GROUP BY a.id, a.symbol, a.name, a.asset_type, a.currency, a.yahoo_symbol
+            GROUP BY a.id, a.symbol, a.name, a.asset_type, a.currency, a.yahoo_symbol,
+                     b.first_year_rate, b.interest_rate, b.interest_margin, b.rate_base,
+                     b.bond_type, b.issue_date
             HAVING SUM(CASE WHEN t.transaction_type = \'buy\' THEN t.quantity ELSE -t.quantity END) > 0
             ORDER BY a.symbol
         ');

@@ -20,6 +20,15 @@ class XtbImportService {
         'NL' => 'AS',      // Holandia
         'ES' => 'MC',      // Hiszpania
         'IT' => 'MI',      // Włochy
+    ];    
+    // Wyjątki walut dla specyficznych symboli
+    // (symbole które nie podążają za regułą kraju)
+    private const CURRENCY_EXCEPTIONS = [
+        'CSPX.UK' => 'USD',    // iShares Core S&P 500 - notowany w USD mimo .UK
+        'VUAA.UK' => 'USD',    // Vanguard S&P 500 - notowany w USD mimo .UK
+        'VUSA.UK' => 'USD',    // Vanguard S&P 500 - notowany w USD mimo .UK
+        'EQQQ.UK' => 'USD',    // Invesco NASDAQ-100 - notowany w USD mimo .UK
+        'IUSA.UK' => 'USD',    // iShares Core S&P 500 - notowany w USD mimo .UK
     ];
     
     // Typy operacji do importu
@@ -293,8 +302,8 @@ PYTHON;
             ');
 
             $stmtHistory = $this->database->prepare('
-                INSERT INTO import_history (user_id, xtb_operation_id)
-                VALUES (?, ?)
+                INSERT INTO import_history (user_id, asset_id, xtb_operation_id)
+                VALUES (?, ?, ?)
             ');
 
             foreach ($operations as $op) {
@@ -336,11 +345,11 @@ PYTHON;
                     $price,                     // 5. price
                     0,                          // 6. commission (jako parametr, nie hardcode w SQL)
                     $op['transaction_date'],    // 7. transaction_date
-                    'Import XTB: ' . ($op['comment'] ?? '') // 8. notes
+                    'Import XTB: ' . $op['xtb_id'] . ' - ' . ($op['comment'] ?? '') // 8. notes (z XTB ID!)
                 ]);
                 
-                // Zapisz w historii
-                $stmtHistory->execute([$userId, $op['xtb_id']]);
+                // Zapisz w historii (z asset_id!)
+                $stmtHistory->execute([$userId, $assetId, $op['xtb_id']]);
                 
                 $imported++;
             }
@@ -378,8 +387,8 @@ PYTHON;
         $baseSymbol = $parts[0];
         $countrySuffix = strtoupper($parts[1] ?? 'US');
         
-        // Określ walutę na podstawie kraju
-        $currency = $this->getCurrencyForCountry($countrySuffix);
+        // Określ walutę: Yahoo Finance API → wyjątki → mapa
+        $currency = $this->getCurrencyForCountry($countrySuffix, $xtbSymbol, $yahooSymbol);
         
         // Określ typ (stock vs etf)
         $assetType = $this->guessAssetType($baseSymbol);
@@ -401,9 +410,62 @@ PYTHON;
     }
     
     /**
-     * Zwraca walutę dla danego kraju
+     * Pobiera walutę instrumentu z Yahoo Finance API
      */
-    private function getCurrencyForCountry(string $country): string {
+    private function fetchCurrencyFromYahoo(string $yahooSymbol): ?string {
+        try {
+            $url = "https://query1.finance.yahoo.com/v8/finance/chart/" . urlencode($yahooSymbol);
+            
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'User-Agent: Mozilla/5.0'
+            ]);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($httpCode !== 200 || !$response) {
+                return null;
+            }
+            
+            $data = json_decode($response, true);
+            
+            // Yahoo zwraca walutę w chart.result[0].meta.currency
+            if (isset($data['chart']['result'][0]['meta']['currency'])) {
+                return strtoupper($data['chart']['result'][0]['meta']['currency']);
+            }
+            
+            return null;
+            
+        } catch (Exception $e) {
+            error_log("Yahoo Finance currency fetch error for $yahooSymbol: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Zwraca walutę dla danego kraju/symbolu
+     * Najpierw próbuje Yahoo Finance, potem wyjątki, na końcu mapę
+     */
+    private function getCurrencyForCountry(string $country, string $xtbSymbol = '', string $yahooSymbol = ''): string {
+        // 1. Spróbuj pobrać z Yahoo Finance (najbardziej niezawodne)
+        if (!empty($yahooSymbol)) {
+            $yahooCurrency = $this->fetchCurrencyFromYahoo($yahooSymbol);
+            if ($yahooCurrency) {
+                return $yahooCurrency;
+            }
+        }
+        
+        // 2. Sprawdź wyjątki dla konkretnego symbolu
+        if (!empty($xtbSymbol) && isset(self::CURRENCY_EXCEPTIONS[$xtbSymbol])) {
+            return self::CURRENCY_EXCEPTIONS[$xtbSymbol];
+        }
+        
+        // 3. Użyj mapowania kraj → waluta
         $currencies = [
             'PL' => 'PLN',
             'US' => 'USD',

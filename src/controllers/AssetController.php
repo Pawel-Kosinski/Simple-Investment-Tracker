@@ -56,4 +56,68 @@ class AssetController extends AppController {
             'userName' => $_SESSION['user_name'] ?? 'Użytkownik'
         ]);
     }
+
+    /**
+     * Usuwa aktywo (i wszystkie powiązane transakcje - CASCADE)
+     */
+    public function delete(): void
+    {
+        $this->requireAuth();
+        
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!$this->isPost()) {
+            http_response_code(405);
+            echo json_encode(['error' => 'Method not allowed']);
+            return;
+        }
+        
+        $userId = $this->getCurrentUserId();
+        $assetId = (int) ($_POST['asset_id'] ?? 0);
+        
+        if (!$assetId) {
+            $_SESSION['error'] = 'Nieprawidłowe ID aktywa';
+            $this->redirect('/assets');
+            return;
+        }
+        
+        // Sprawdź czy aktywo należy do użytkownika (ma transakcje)
+        $asset = $this->assetRepository->findById($assetId);
+        
+        if (!$asset) {
+            $_SESSION['error'] = 'Aktywo nie istnieje';
+            $this->redirect('/assets');
+            return;
+        }
+        
+        // Sprawdź czy użytkownik ma transakcje tego aktywa
+        $hasTransactions = false;
+        $portfolios = $this->portfolioRepository->findByUserId($userId);
+        
+        foreach ($portfolios as $portfolio) {
+            $transactions = $this->transactionRepository->findByPortfolioAndAsset($portfolio->getId(), $assetId);
+            if (!empty($transactions)) {
+                $hasTransactions = true;
+                break;
+            }
+        }
+        
+        if (!$hasTransactions) {
+            $_SESSION['error'] = 'Nie masz uprawnień do usunięcia tego aktywa';
+            $this->redirect('/assets');
+            return;
+        }
+        
+        // Usuń aktywo (CASCADE usunie: transactions, bonds, price_cache, import_history)
+        try {
+            $this->assetRepository->delete($assetId);
+            $_SESSION['success'] = 'Aktywo zostało usunięte wraz ze wszystkimi transakcjami. Możesz zaimportować je ponownie.';
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Błąd podczas usuwania aktywa';
+        }
+        
+        $this->redirect('/assets');
+    }
 }

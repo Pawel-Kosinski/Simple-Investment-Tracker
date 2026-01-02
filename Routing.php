@@ -37,6 +37,10 @@ class Routing {
             'controller' => 'AssetController',
             'action' => 'index'
         ],
+        'assets/delete' => [
+            'controller' => 'AssetController',
+            'action' => 'delete'
+        ],
         'import' => [
             'controller' => 'ImportController',
             'action' => 'index'
