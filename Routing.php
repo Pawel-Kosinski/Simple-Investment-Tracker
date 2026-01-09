@@ -5,6 +5,7 @@ require_once 'src/controllers/DashboardController.php';
 require_once 'src/controllers/AssetController.php';
 require_once 'src/controllers/ImportController.php';
 require_once 'src/controllers/BondController.php';
+require_once 'src/controllers/PortfolioController.php';
 
 class Routing {
 
@@ -64,6 +65,14 @@ class Routing {
         'bonds/add' => [
             'controller' => 'BondController',
             'action' => 'add'
+        ],
+        'portfolio/create' => [
+            'controller' => 'PortfolioController',
+            'action' => 'create'
+        ],
+        'portfolio/delete' => [
+            'controller' => 'PortfolioController',
+            'action' => 'delete'
         ],
         'api/holdings' => [
             'controller' => 'DashboardController',

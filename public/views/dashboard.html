@@ -200,6 +200,35 @@
             margin-bottom: 1.5rem;
         }
 
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header .section-title {
+            margin-bottom: 0;
+        }
+
+        .btn-secondary {
+            padding: 0.5rem 1rem;
+            background: white;
+            color: #667eea;
+            border: 1.5px solid #667eea;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-1px);
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .stats-grid {
@@ -314,7 +343,14 @@
 
         <!-- Portfolios Section -->
         <section class="portfolios-section">
-            <h2 class="section-title">Portfele</h2>
+            <div class="section-header">
+                <h2 class="section-title">Portfele</h2>
+                <?php if (!empty($portfolios)): ?>
+                    <button onclick="openCreatePortfolioModal()" class="btn btn-secondary">
+                        ➕ Nowy portfel
+                    </button>
+                <?php endif; ?>
+            </div>
 
             <div class="portfolios-grid">
                 <?php if (!empty($portfolios)): ?>
@@ -371,13 +407,200 @@
                         </a>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <div class="portfolio-card">
-                        <p>Brak portfeli. Dodaj transakcję aby utworzyć portfel.</p>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📁</div>
+                        <h3 class="empty-state-title">Brak portfeli</h3>
+                        <p class="empty-state-text">Utwórz swój pierwszy portfel, aby zacząć śledzić inwestycje</p>
+                        <button onclick="openCreatePortfolioModal()" class="btn btn-primary">
+                            ➕ Utwórz pierwszy portfel
+                        </button>
                     </div>
                 <?php endif; ?>
             </div>
         </section>
     </main>
     </div>
+
+    <!-- Create Portfolio Modal -->
+    <div id="createPortfolioModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Utwórz nowy portfel</h3>
+            <form method="POST" action="/portfolio/create">
+                <div class="form-group">
+                    <label for="portfolioName">Nazwa portfela *</label>
+                    <input type="text" id="portfolioName" name="name" required 
+                           maxlength="100"
+                           placeholder="np. Długoterminowy, Oszczędności, Trading">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" onclick="closeCreatePortfolioModal()" class="btn-cancel">
+                        Anuluj
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Utwórz portfel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state-title {
+            font-size: 1.5rem;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state-text {
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            color: #1a1a1a;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            justify-content: flex-end;
+        }
+
+        .btn-cancel {
+            padding: 0.75rem 1.5rem;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-cancel:hover {
+            background: #e5e7eb;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+    </style>
+
+    <script>
+        function openCreatePortfolioModal() {
+            document.getElementById('createPortfolioModal').style.display = 'flex';
+        }
+
+        function closeCreatePortfolioModal() {
+            document.getElementById('createPortfolioModal').style.display = 'none';
+        }
+
+        // Close modal on ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeCreatePortfolioModal();
+            }
+        });
+
+        // Close modal on background click
+        document.getElementById('createPortfolioModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCreatePortfolioModal();
+            }
+        });
+    </script>
+
 </body>
 </html>

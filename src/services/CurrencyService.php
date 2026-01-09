@@ -128,7 +128,6 @@ class CurrencyService {
      * Zwraca fallback rate jeśli NBP nie ma danej waluty
      */
     private function getFallbackRate(string $currency): float {
-        // Przybliżone kursy dla walut których NBP może nie mieć
         $fallbackRates = [
             'USD' => 4.0,
             'EUR' => 4.3,
