@@ -364,4 +364,82 @@ class TransactionRepository extends Repository
 
         return $stmt->fetch() ?: [];
     }
+
+    /**
+     * Pobiera transakcje dla użytkownika z filtrami
+     */
+    public function getTransactionsWithFilters(int $userId, ?int $portfolioId = null, string $typeFilter = 'all'): array
+    {
+        $sql = '
+            SELECT 
+                t.*,
+                a.symbol,
+                a.name as asset_name,
+                a.currency,
+                p.name as portfolio_name
+            FROM transactions t
+            JOIN assets a ON t.asset_id = a.id
+            JOIN portfolios p ON t.portfolio_id = p.id
+            WHERE p.user_id = :user_id
+        ';
+        
+        $params = ['user_id' => $userId];
+        
+        // Filtr portfela
+        if ($portfolioId) {
+            $sql .= ' AND t.portfolio_id = :portfolio_id';
+            $params['portfolio_id'] = $portfolioId;
+        }
+        
+        // Filtr typu
+        if ($typeFilter !== 'all') {
+            $sql .= ' AND t.transaction_type = :type';
+            $params['type'] = $typeFilter;
+        }
+        
+        $sql .= ' ORDER BY t.transaction_date DESC, t.id DESC';
+        
+        $stmt = $this->database->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Pobiera transakcję z weryfikacją własności użytkownika
+     */
+    public function getTransactionWithOwnership(int $transactionId): ?array
+    {
+        $stmt = $this->database->prepare('
+            SELECT t.*, p.user_id 
+            FROM transactions t
+            JOIN portfolios p ON t.portfolio_id = p.id
+            WHERE t.id = :id
+        ');
+        $stmt->execute(['id' => $transactionId]);
+        
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ?: null;
+    }
+
+    /**
+     * Usuwa wpis z import_history dla operacji XTB
+     */
+    public function deleteImportHistory(int $userId, int $xtbId): bool
+    {
+        $stmt = $this->database->prepare('
+            DELETE FROM import_history 
+            WHERE user_id = :user_id AND xtb_operation_id = :xtb_id
+        ');
+        return $stmt->execute(['user_id' => $userId, 'xtb_id' => $xtbId]);
+    }
+
+    /**
+     * Usuwa transakcję po ID
+     */
+    public function deleteById(int $transactionId): bool
+    {
+        $stmt = $this->database->prepare('DELETE FROM transactions WHERE id = :id');
+        return $stmt->execute(['id' => $transactionId]);
+    }
 }

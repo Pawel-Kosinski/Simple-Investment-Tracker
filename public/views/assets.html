@@ -83,6 +83,7 @@
             <nav class="nav">
                 <a href="/dashboard" class="nav-link">Podsumowanie</a>
                 <a href="/assets" class="nav-link active">Aktywa</a>
+                <a href="/transactions" class="nav-link">Transakcje</a>
                 <a href="/import" class="nav-link">Import</a>
             </nav>
             <div class="user-menu">
@@ -129,7 +130,7 @@
                 <?php if (empty($holdings)): ?>
                     <div class="empty-state">
                         <p>Brak aktywów w portfelu</p>
-                        <a href="/import" class="btn btn-primary">Dodaj transakcję</a>
+                        <a href="/transactions/add" class="btn btn-primary">Dodaj transakcję</a>
                     </div>
                 <?php else: ?>
                     <table class="holdings-table">

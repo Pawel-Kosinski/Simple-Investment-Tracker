@@ -6,6 +6,7 @@ require_once 'src/controllers/AssetController.php';
 require_once 'src/controllers/ImportController.php';
 require_once 'src/controllers/BondController.php';
 require_once 'src/controllers/PortfolioController.php';
+require_once 'src/controllers/TransactionController.php';
 
 class Routing {
 
@@ -40,6 +41,14 @@ class Routing {
         ],
         'assets/delete' => [
             'controller' => 'AssetController',
+            'action' => 'delete'
+        ],
+        'transactions' => [
+            'controller' => 'TransactionController',
+            'action' => 'index'
+        ],
+        'transactions/delete' => [
+            'controller' => 'TransactionController',
             'action' => 'delete'
         ],
         'import' => [
