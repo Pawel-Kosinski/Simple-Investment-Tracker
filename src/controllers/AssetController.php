@@ -120,4 +120,70 @@ class AssetController extends AppController {
         
         $this->redirect('/assets');
     }
+
+    // ============================================
+    // FETCH API ENDPOINT
+    // ============================================
+
+    /**
+     * API: Usuwa aktywo (zwraca JSON)
+     */
+    public function deleteApi(): void
+    {
+        header('Content-Type: application/json');
+        
+        if (!$this->getCurrentUserId()) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Wymagane zalogowanie']);
+            return;
+        }
+        
+        if (!$this->isPost()) {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Metoda niedozwolona']);
+            return;
+        }
+        
+        $userId = $this->getCurrentUserId();
+        $assetId = (int) ($_POST['asset_id'] ?? 0);
+        
+        if (!$assetId) {
+            echo json_encode(['success' => false, 'error' => 'Nieprawidłowe ID aktywa']);
+            return;
+        }
+        
+        // Sprawdź czy aktywo istnieje
+        $asset = $this->assetRepository->findById($assetId);
+        if (!$asset) {
+            echo json_encode(['success' => false, 'error' => 'Aktywo nie istnieje']);
+            return;
+        }
+        
+        // Sprawdź uprawnienia
+        $hasTransactions = false;
+        $portfolios = $this->portfolioRepository->findByUserId($userId);
+        
+        foreach ($portfolios as $portfolio) {
+            $transactions = $this->transactionRepository->findByPortfolioAndAsset($portfolio->getId(), $assetId);
+            if (!empty($transactions)) {
+                $hasTransactions = true;
+                break;
+            }
+        }
+        
+        if (!$hasTransactions) {
+            echo json_encode(['success' => false, 'error' => 'Brak uprawnień do tego aktywa']);
+            return;
+        }
+        
+        try {
+            $this->assetRepository->delete($assetId);
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Aktywo zostało usunięte wraz ze wszystkimi transakcjami'
+            ]);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => 'Błąd podczas usuwania aktywa']);
+        }
+    }
 }

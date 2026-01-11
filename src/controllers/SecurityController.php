@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../repository/UserRepository.php';
+require_once __DIR__ . '/../Attribute/AllowedMethods.php';
 require_once 'AppController.php';
 
 class SecurityController extends AppController {
@@ -12,6 +13,7 @@ class SecurityController extends AppController {
         $this->userRepository = new UserRepository();
     }
 
+    #[AllowedMethods(['GET', 'POST'])]
     public function login(): void
     {
         if ($this->getCurrentUserId() !== null) {
@@ -56,6 +58,7 @@ class SecurityController extends AppController {
         $this->redirect('/dashboard');
     }
 
+    #[AllowedMethods(['GET', 'POST'])]
     public function register(): void
     {
         if ($this->getCurrentUserId() !== null) {
@@ -96,10 +99,18 @@ class SecurityController extends AppController {
 
         if (empty($firstname)) {
             $errors[] = 'Imię jest wymagane';
+        } elseif (strlen($firstname) < 2) {
+            $errors[] = 'Imię musi mieć minimum 2 znaki';
+        } elseif (!preg_match('/^[a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ\s\-]+$/u', $firstname)) {
+            $errors[] = 'Imię może zawierać tylko litery, spacje i myślniki';
         }
 
         if (empty($lastname)) {
             $errors[] = 'Nazwisko jest wymagane';
+        } elseif (strlen($lastname) < 2) {
+            $errors[] = 'Nazwisko musi mieć minimum 2 znaki';
+        } elseif (!preg_match('/^[a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ\s\-]+$/u', $lastname)) {
+            $errors[] = 'Nazwisko może zawierać tylko litery, spacje i myślniki';
         }
 
         if (!empty($errors)) {

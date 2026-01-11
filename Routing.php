@@ -7,6 +7,7 @@ require_once 'src/controllers/ImportController.php';
 require_once 'src/controllers/BondController.php';
 require_once 'src/controllers/PortfolioController.php';
 require_once 'src/controllers/TransactionController.php';
+require_once 'src/Middleware/checkRequestAllowed.php';
 
 class Routing {
 
@@ -90,6 +91,23 @@ class Routing {
         'api/stats' => [
             'controller' => 'DashboardController',
             'action' => 'getStats'
+        ],
+        // Fetch API endpoints
+        'api/portfolio/create' => [
+            'controller' => 'PortfolioController',
+            'action' => 'createApi'
+        ],
+        'api/portfolio/delete' => [
+            'controller' => 'PortfolioController',
+            'action' => 'deleteApi'
+        ],
+        'api/assets/delete' => [
+            'controller' => 'AssetController',
+            'action' => 'deleteApi'
+        ],
+        'api/transactions/delete' => [
+            'controller' => 'TransactionController',
+            'action' => 'deleteApi'
         ]
     ];
 
@@ -103,6 +121,7 @@ class Routing {
             $action = $route['action'];
 
             $controller = new $controllerName();
+            checkRequestAllowed($controller, $action);
             $controller->$action();
         } else {
             http_response_code(404);

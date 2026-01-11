@@ -96,6 +96,17 @@ body {
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+/* Walidacja - błędne pole */
+.form-group input.no-valid {
+    border: 2px solid #dc2626;
+    background-color: #fef2f2;
+}
+
+.form-group input.no-valid:focus {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
 .form-group input::placeholder {
     color: #9ca3af;
 }

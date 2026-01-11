@@ -112,4 +112,64 @@ class TransactionController extends AppController {
         
         $this->redirect('/transactions');
     }
+
+    // ============================================
+    // FETCH API ENDPOINT
+    // ============================================
+
+    /**
+     * API: Usuwa transakcję (zwraca JSON)
+     */
+    public function deleteApi(): void
+    {
+        header('Content-Type: application/json');
+        
+        if (!$this->getCurrentUserId()) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Wymagane zalogowanie']);
+            return;
+        }
+        
+        if (!$this->isPost()) {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Metoda niedozwolona']);
+            return;
+        }
+        
+        $userId = $this->getCurrentUserId();
+        $transactionId = (int) ($_POST['transaction_id'] ?? 0);
+        
+        if (!$transactionId) {
+            echo json_encode(['success' => false, 'error' => 'Nieprawidłowe ID transakcji']);
+            return;
+        }
+        
+        try {
+            // Pobierz transakcję z weryfikacją własności
+            $transaction = $this->transactionRepository->getTransactionWithOwnership($transactionId);
+            
+            if (!$transaction) {
+                echo json_encode(['success' => false, 'error' => 'Transakcja nie istnieje']);
+                return;
+            }
+            
+            if ($transaction['user_id'] != $userId) {
+                echo json_encode(['success' => false, 'error' => 'Brak uprawnień do tej transakcji']);
+                return;
+            }
+            
+            // Usuń z import_history jeśli to był import XTB
+            if (!empty($transaction['notes']) && preg_match('/Import XTB: (\d+)/', $transaction['notes'], $matches)) {
+                $xtbId = (int) $matches[1];
+                $this->transactionRepository->deleteImportHistory($userId, $xtbId);
+            }
+            
+            $this->transactionRepository->deleteById($transactionId);
+            
+            echo json_encode(['success' => true, 'message' => 'Transakcja została cofnięta']);
+            
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => 'Błąd podczas cofania transakcji']);
+        }
+    }
 }

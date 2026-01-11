@@ -71,7 +71,7 @@
                                 $typeLabel = ['buy'=>'Zakup','sell'=>'Sprzedaż','dividend'=>'Dywidenda'][$transaction['transaction_type']] ?? $transaction['transaction_type'];
                                 $badgeClass = ['buy'=>'positive','sell'=>'negative','dividend'=>''][$transaction['transaction_type']] ?? '';
                             ?>
-                            <tr>
+                            <tr data-transaction-id="<?= $transaction['id'] ?>">
                                 <td><?= date('Y-m-d', strtotime($transaction['transaction_date'])) ?></td>
                                 <td><?= htmlspecialchars($transaction['portfolio_name']) ?></td>
                                 <td><strong><?= htmlspecialchars($transaction['symbol']) ?></strong></td>
@@ -80,7 +80,7 @@
                                 <td><?= number_format($transaction['price'], 2, ',', ' ') ?> PLN</td>
                                 <td><?= number_format($transaction['quantity'] * $transaction['price'], 2, ',', ' ') ?> PLN</td>
                                 <td>
-                                    <button onclick="confirmDelete(<?= $transaction['id'] ?>)" class="btn btn-cancel" style="padding:0.25rem 0.5rem;">↶</button>
+                                    <button onclick="confirmDeleteTransaction(<?= $transaction['id'] ?>)" class="btn btn-cancel" style="padding:0.25rem 0.5rem;" title="Cofnij transakcję">↶</button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -90,8 +90,22 @@
         </main>
     </div>
     
+    <!-- Modal potwierdzenia cofnięcia transakcji -->
+    <div id="deleteTransactionModal" class="modal">
+        <div class="modal-content">
+            <h3>Cofnij transakcję</h3>
+            <p>Czy na pewno chcesz cofnąć tę transakcję?</p>
+            <p style="color: var(--negative); font-size: 0.85rem; margin-top: 0.5rem;">⚠️ Ta operacja jest nieodwracalna!</p>
+            <div class="modal-actions">
+                <button onclick="closeModal('deleteTransactionModal')" class="btn btn-cancel">Anuluj</button>
+                <button onclick="executeDeleteTransaction()" class="btn btn-danger">Cofnij transakcję</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         function updateFilters(s, p) { let u=new URL(window.location); if(s.value) u.searchParams.set(p,s.value); else u.searchParams.delete(p); window.location.href=u.toString(); }
     </script>
+    <script src="/public/scripts/fetch.js"></script>
 </body>
 </html>

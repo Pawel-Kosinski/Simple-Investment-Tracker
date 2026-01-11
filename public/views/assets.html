@@ -69,7 +69,7 @@
                     </thead>
                     <tbody>
                         <?php foreach ($holdings as $holding): ?>
-                            <tr>
+                            <tr data-asset-id="<?= $holding['asset_id'] ?>">
                                 <td><span class="badge" style="background:#f1f5f9; color:#1e293b;"><?= htmlspecialchars($holding['symbol']) ?></span></td>
                                 <td><?= htmlspecialchars($holding['name'] ?? '—') ?></td>
                                 <td><?= number_format($holding['quantity'], 4, ',', ' ') ?></td>
@@ -121,22 +121,13 @@
         <div class="modal-content">
             <h3>Potwierdź usunięcie</h3>
             <p>Czy na pewno chcesz usunąć aktywo <strong id="deleteAssetName"></strong>?</p>
+            <p style="color: var(--negative); font-size: 0.85rem; margin-top: 0.5rem;">⚠️ Wszystkie transakcje tego aktywa zostaną usunięte!</p>
             <div class="modal-actions">
-                <button onclick="closeDeleteModal()" class="btn btn-cancel">Anuluj</button>
-                <form id="deleteForm" method="POST" action="/assets/delete">
-                    <input type="hidden" name="asset_id" id="deleteAssetId">
-                    <button type="submit" class="btn btn-danger">Usuń</button>
-                </form>
+                <button onclick="closeModal('deleteModal')" class="btn btn-cancel">Anuluj</button>
+                <button onclick="executeDeleteAsset()" class="btn btn-danger">Usuń aktywo</button>
             </div>
         </div>
     </div>
-    <script>
-        function confirmDelete(id, symbol) {
-            document.getElementById('deleteAssetId').value = id;
-            document.getElementById('deleteAssetName').textContent = symbol;
-            document.getElementById('deleteModal').style.display = 'flex';
-        }
-        function closeDeleteModal() { document.getElementById('deleteModal').style.display = 'none'; }
-    </script>
+    <script src="/public/scripts/fetch.js"></script>
 </body>
 </html>
