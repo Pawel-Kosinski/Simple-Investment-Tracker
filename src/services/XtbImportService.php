@@ -442,7 +442,6 @@ PYTHON;
             return null;
             
         } catch (Exception $e) {
-            error_log("Yahoo Finance currency fetch error for $yahooSymbol: " . $e->getMessage());
             return null;
         }
     }

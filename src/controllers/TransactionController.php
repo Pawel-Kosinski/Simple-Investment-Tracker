@@ -107,7 +107,6 @@ class TransactionController extends AppController {
             $_SESSION['success'] = 'Transakcja została cofnięta';
             
         } catch (Exception $e) {
-            error_log('Error deleting transaction: ' . $e->getMessage());
             $_SESSION['error'] = 'Błąd podczas cofania transakcji';
         }
         

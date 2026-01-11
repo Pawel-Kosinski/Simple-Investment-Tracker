@@ -6,404 +6,60 @@
     <title>Import danych - Investment Tracker</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="/public/styles/app.css?v=9">
+    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
-            --text: #1e293b;
-            --text-light: #64748b;
-            --border: #e2e8f0;
-            --primary: #16a34a;
-            --primary-hover: #15803d;
-            --danger: #dc2626;
-            --warning: #f59e0b;
-            --radius: 12px;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-        }
-
-        /* Header */
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1rem 2rem;
-            background: #1a1a1a;
-            color: white;
-        }
-
-        .logo {
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .nav {
-            display: flex;
-            gap: 2rem;
-        }
-
-        .nav-link {
-            color: rgba(255,255,255,0.6);
-            text-decoration: none;
-            font-size: 0.875rem;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            color: white;
-        }
-
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .user-name {
-            font-size: 0.875rem;
-            opacity: 0.8;
-        }
-
-        .logout-link {
-            color: rgba(255,255,255,0.6);
-            text-decoration: none;
-            font-size: 0.875rem;
-        }
-
-        /* Main */
-        .main {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .page-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .page-title {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .page-subtitle {
-            color: var(--text-light);
-        }
-
-        /* Alerts */
-        .alert {
-            padding: 1rem 1.25rem;
-            border-radius: var(--radius);
-            margin-bottom: 1.5rem;
-        }
-
-        .alert-success {
-            background: #dcfce7;
-            color: #166534;
-            border: 1px solid #bbf7d0;
-        }
-
-        .alert-error {
-            background: #fef2f2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
-
-        .alert-warning {
-            background: #fefce8;
-            color: #a16207;
-            border: 1px solid #fef08a;
-        }
-
-        /* Grid */
+        /* IMPORT SPECIFIC STYLES */
         .import-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 2rem;
             margin-bottom: 2rem;
+            align-items: start;
         }
 
-        @media (max-width: 900px) {
-            .import-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Card */
         .card {
-            background: var(--card-bg);
+            background: white;
             border: 1px solid var(--border);
-            border-radius: var(--radius);
+            border-radius: 12px;
             padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
         .card-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            text-align: center;
-            margin-bottom: 1.5rem;
+            font-size: 1.25rem; font-weight: 700; text-align: center;
+            margin-bottom: 1.5rem; color: #1a1a1a;
         }
 
-        /* Upload Area */
         .upload-area {
             border: 2px dashed var(--border);
-            border-radius: var(--radius);
-            padding: 3rem 2rem;
+            border-radius: 12px;
+            padding: 3rem 1rem;
             text-align: center;
             cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
+            transition: all 0.2s;
+            background: #fafafa;
         }
-
-        .upload-area:hover,
-        .upload-area.dragover {
-            border-color: var(--primary);
-            background: #f0fdf4;
+        .upload-area:hover { border-color: var(--primary); background: #f0fdf4; }
+        .upload-icon { font-size: 3rem; color: var(--text-light); margin-bottom: 1rem; display: block; }
+        
+        @media (max-width: 900px) {
+            .import-grid { grid-template-columns: 1fr; }
         }
-
-        .upload-icon {
-            font-size: 3rem;
-            color: var(--text-light);
-            margin-bottom: 1rem;
-        }
-
-        .upload-text {
-            font-weight: 500;
-            margin-bottom: 0.25rem;
-        }
-
-        .upload-hint {
-            color: var(--text-light);
-            font-size: 0.875rem;
-            margin-bottom: 1rem;
-        }
-
-        .upload-formats {
-            color: var(--text-light);
-            font-size: 0.75rem;
-            margin-top: 1.5rem;
-        }
-
-        /* Form */
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-        }
-
-        .form-input,
-        .form-select {
-            width: 100%;
-            padding: 0.625rem 0.875rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-family: inherit;
-            transition: border-color 0.2s;
-        }
-
-        .form-input:focus,
-        .form-select:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        /* Buttons */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-hover);
-        }
-
-        .btn-secondary {
-            background: var(--border);
-            color: var(--text);
-        }
-
-        .btn-secondary:hover {
-            background: #cbd5e1;
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-
-        .btn-block {
-            width: 100%;
-        }
-
-        /* Preview Section */
-        .preview-section {
-            margin-top: 2rem;
-        }
-
-        .preview-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .preview-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-        }
-
-        .preview-stats {
-            display: flex;
-            gap: 1.5rem;
-            font-size: 0.875rem;
-        }
-
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .stat-badge {
-            padding: 0.25rem 0.625rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .stat-badge.new {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .stat-badge.duplicate {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        /* Preview Table */
-        .preview-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.875rem;
-        }
-
-        .preview-table th,
-        .preview-table td {
-            padding: 0.75rem 1rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .preview-table th {
-            background: #f8fafc;
-            font-weight: 600;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            color: var(--text-light);
-        }
-
-        .preview-table tr.duplicate {
-            background: #fefce8;
-            opacity: 0.7;
-        }
-
-        .preview-table .checkbox-cell {
-            width: 40px;
-            text-align: center;
-        }
-
-        .type-badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .type-badge.buy {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .type-badge.sell {
-            background: #fef2f2;
-            color: #dc2626;
-        }
-
-        .type-badge.dividend {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .symbol-badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            background: #f1f5f9;
-            border-radius: 4px;
-            font-weight: 600;
-            font-size: 0.8125rem;
-        }
-
-        .preview-actions {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
-            justify-content: flex-end;
-        }
-
-        /* Hidden file input */
-        .hidden {
-            display: none;
-        }
+        
+        /* Styl dla tabeli podglądu */
+        .preview-table th { background: #f9fafb; }
+        .stat-badge.new { background: #dcfce7; color: #166534; }
+        .stat-badge.duplicate { background: #fef3c7; color: #92400e; }
     </style>
 </head>
 <body>
-    <!-- Header -->
     <header class="header">
         <span class="logo">Investment Tracker</span>
         <nav class="nav">
             <a href="/dashboard" class="nav-link">Podsumowanie</a>
             <a href="/assets" class="nav-link">Aktywa</a>
+            <a href="/transactions" class="nav-link">Transakcje</a>
             <a href="/import" class="nav-link active">Import</a>
         </nav>
         <div class="user-menu">
@@ -413,41 +69,23 @@
     </header>
 
     <main class="main">
-        <!-- Page Header -->
-        <div class="page-header">
-            <h1 class="page-title">Import danych</h1>
-            <p class="page-subtitle">Wgraj plik z operacjami lub dodaj transakcję ręcznie</p>
+        <div class="page-header" style="text-align: center;">
+            <h1 class="page-title" style="margin-bottom: 0.5rem">Import danych</h1>
+            <p style="color: var(--text-light);">Wgraj plik z operacjami lub dodaj transakcję ręcznie</p>
         </div>
 
-        <!-- Alerts -->
         <?php if (isset($_SESSION['import_success'])): ?>
-            <div class="alert alert-success">
-                <?= htmlspecialchars($_SESSION['import_success']) ?>
-            </div>
+            <div class="alert alert-success"><?= htmlspecialchars($_SESSION['import_success']) ?></div>
             <?php unset($_SESSION['import_success']); ?>
         <?php endif; ?>
-
         <?php if (isset($_SESSION['import_error'])): ?>
-            <div class="alert alert-error">
-                <?= htmlspecialchars($_SESSION['import_error']) ?>
-            </div>
+            <div class="alert alert-error"><?= htmlspecialchars($_SESSION['import_error']) ?></div>
             <?php unset($_SESSION['import_error']); ?>
         <?php endif; ?>
 
-        <?php if (isset($_SESSION['import_warnings'])): ?>
-            <div class="alert alert-warning">
-                <strong>Ostrzeżenia:</strong><br>
-                <?php foreach ($_SESSION['import_warnings'] as $warning): ?>
-                    • <?= htmlspecialchars($warning) ?><br>
-                <?php endforeach; ?>
-            </div>
-            <?php unset($_SESSION['import_warnings']); ?>
-        <?php endif; ?>
-
         <?php if (empty($previewData)): ?>
-        <!-- Import Grid -->
+        
         <div class="import-grid">
-            <!-- Upload Card -->
             <div class="card">
                 <h2 class="card-title">Wgraj plik</h2>
                 <form action="/import/upload" method="POST" enctype="multipart/form-data" id="upload-form">
@@ -456,27 +94,21 @@
                         <select name="portfolio_id" class="form-select" required>
                             <option value="">Wybierz portfel...</option>
                             <?php foreach ($portfolios as $portfolio): ?>
-                                <option value="<?= $portfolio->getId() ?>">
-                                    <?= htmlspecialchars($portfolio->getName()) ?>
-                                </option>
+                                <option value="<?= $portfolio->getId() ?>"><?= htmlspecialchars($portfolio->getName()) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-
                     <div class="upload-area" id="upload-area">
                         <span class="material-icons upload-icon">cloud_upload</span>
-                        <p class="upload-text">Przeciągnij plik tutaj</p>
-                        <p class="upload-hint">lub</p>
-                        <button type="button" class="btn btn-primary" onclick="document.getElementById('file-input').click()">
-                            Wybierz plik
-                        </button>
+                        <p style="font-weight:500;">Przeciągnij plik tutaj</p>
+                        <p style="color:var(--text-light);">lub</p>
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('file-input').click()">Wybierz plik</button>
                         <input type="file" name="file" id="file-input" class="hidden" accept=".csv,.xlsx,.xls">
-                        <p class="upload-formats">Obsługiwane formaty: CSV, Excel (.xlsx, .xls)</p>
+                        <p style="font-size:0.75rem; color:var(--text-light); margin-top:1rem;">CSV, Excel</p>
                     </div>
                 </form>
             </div>
 
-            <!-- Manual Entry Card -->
             <div class="card">
                 <h2 class="card-title">Dodaj ręcznie</h2>
                 <form action="/import/manual" method="POST">
@@ -486,7 +118,7 @@
                             <input type="date" name="date" class="form-input" value="<?= date('Y-m-d') ?>" required>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Typ operacji</label>
+                            <label class="form-label">Typ</label>
                             <select name="type" class="form-select" required>
                                 <option value="buy">Kupno</option>
                                 <option value="sell">Sprzedaż</option>
@@ -494,44 +126,36 @@
                             </select>
                         </div>
                     </div>
-
                     <div class="form-group">
                         <label class="form-label">Portfel</label>
                         <select name="portfolio_id" class="form-select" required>
                             <option value="">Wybierz portfel...</option>
                             <?php foreach ($portfolios as $portfolio): ?>
-                                <option value="<?= $portfolio->getId() ?>">
-                                    <?= htmlspecialchars($portfolio->getName()) ?>
-                                </option>
+                                <option value="<?= $portfolio->getId() ?>"><?= htmlspecialchars($portfolio->getName()) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label class="form-label">Symbol</label>
-                        <input type="text" name="symbol" class="form-input" placeholder="np. CDR.PL lub AAPL" required>
+                        <input type="text" name="symbol" class="form-input" placeholder="np. AAPL" required>
                     </div>
-
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Ilość</label>
-                            <input type="number" name="quantity" class="form-input" step="0.0001" min="0.0001" placeholder="10" required>
+                            <input type="number" name="quantity" class="form-input" step="0.0001" placeholder="10" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Cena</label>
-                            <input type="number" name="price" class="form-input" step="0.01" min="0.01" placeholder="150.25" required>
+                            <input type="number" name="price" class="form-input" step="0.01" placeholder="150.00" required>
                         </div>
                     </div>
-
-                    <button type="submit" class="btn btn-primary btn-block">
-                        Dodaj transakcję
-                    </button>
+                    <button type="submit" class="btn btn-primary btn-block">Dodaj transakcję</button>
                 </form>
             </div>
 
-            <!-- Simple Bond Entry Card - NO AJAX -->
             <div class="card">
                 <h2 class="card-title">Dodaj obligację skarbową</h2>
+                
                 <p style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">
                     Wpisz <strong>kod obligacji</strong> (np. EDO0935) - typ i daty wypełnią się automatycznie
                 </p>
@@ -540,30 +164,20 @@
                 </p>
                 
                 <form action="/bonds/add" method="POST" id="bond-form">
-                    <!-- Kod obligacji -->
                     <div class="form-group">
                         <label class="form-label">Kod obligacji *</label>
-                        <input type="text" 
-                               name="bond_code" 
-                               id="bond-code-input" 
-                               class="form-input" 
-                               placeholder="np. EDO0935, COI1229, TOS1228"
-                               style="text-transform: uppercase;"
-                               required>
-                        <small id="bond-info" style="color: #16a34a; display: none;"></small>
-                        <small id="bond-error" style="color: #dc2626; display: none;"></small>
+                        <input type="text" name="bond_code" id="bond-code-input" class="form-input" placeholder="np. EDO0935" required style="text-transform:uppercase">
+                        <small id="bond-info" style="display:none; color:var(--positive); margin-top:0.5rem; font-weight: 600;"></small>
+                        <small id="bond-error" style="display:none; color:var(--negative); margin-top:0.5rem;"></small>
                     </div>
 
-                    <!-- Podstawowe dane -->
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Portfel *</label>
                             <select name="portfolio_id" class="form-select" required>
-                                <option value="">Wybierz portfel...</option>
+                                <option value="">Wybierz...</option>
                                 <?php foreach ($portfolios as $portfolio): ?>
-                                    <option value="<?= $portfolio->getId() ?>">
-                                        <?= htmlspecialchars($portfolio->getName()) ?>
-                                    </option>
+                                    <option value="<?= $portfolio->getId() ?>"><?= htmlspecialchars($portfolio->getName()) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -572,363 +186,187 @@
                             <input type="date" name="purchase_date" class="form-input" value="<?= date('Y-m-d') ?>" required>
                         </div>
                     </div>
-
-                    <!-- Oprocentowanie - dynamiczne pola -->
-                    <div id="rate-fields" style="display: none;">
-                        <div style="background: #fef3c7; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.875rem;">
+                    
+                    <div id="rate-fields" style="display:none;">
+                        <div style="background: #fef3c7; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.875rem; border: 1px solid #fde68a; color: #92400e;">
                             <strong>⚠️ Wpisz oprocentowanie z listu emisyjnego</strong><br>
                             <span id="rate-instruction"></span>
                         </div>
 
-                        <!-- Dla OTS, TOS -->
-                        <div id="fixed-rate-field" style="display: none;">
+                        <div id="fixed-rate-field" style="display:none;">
                             <div class="form-group">
-                                <label class="form-label">Stała stopa % *</label>
-                                <input type="number" name="interest_rate" id="interest-rate" class="form-input" step="0.01" min="0" placeholder="np. 4.65">
+                                <label class="form-label">Stała stopa %</label>
+                                <input type="number" name="interest_rate" id="interest-rate" class="form-input" step="0.01">
                             </div>
                         </div>
 
-                        <!-- Dla COI, EDO, ROS, ROD, ROR, DOR -->
-                        <div id="variable-rate-fields" style="display: none;">
+                        <div id="variable-rate-fields" style="display:none;">
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">Stopa pierwszego okresu % *</label>
-                                    <input type="number" name="first_year_rate" id="first-year-rate" class="form-input" step="0.01" min="0" placeholder="np. 5.60">
+                                    <label class="form-label">Stopa 1. okresu %</label>
+                                    <input type="number" name="first_year_rate" id="first-year-rate" class="form-input" step="0.01">
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Marża % *</label>
-                                    <input type="number" name="interest_margin" id="interest-margin" class="form-input" step="0.01" min="0" placeholder="np. 2.00">
+                                    <label class="form-label">Marża %</label>
+                                    <input type="number" name="interest_margin" id="interest-margin" class="form-input" step="0.01">
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Ilość i cena -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Ilość (sztuki) *</label>
-                            <input type="number" name="quantity" class="form-input" step="1" min="1" value="10" required>
+                            <label class="form-label">Ilość</label>
+                            <input type="number" name="quantity" class="form-input" step="1" value="10" required>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Cena zakupu (PLN) *</label>
-                            <input type="number" name="price" class="form-input" step="0.01" min="0.01" value="100.00" required>
-                            <small style="color: #64748b;">Zwykły zakup: 100 PLN, zamiana: 99.90 PLN</small>
+                            <label class="form-label">Cena zakupu</label>
+                            <input type="number" name="price" class="form-input" step="0.01" value="100.00" required>
                         </div>
                     </div>
-
-                    <!-- Ukryte pola -->
+                    
                     <input type="hidden" name="bond_type" id="bond-type">
                     <input type="hidden" name="issue_date" id="issue-date">
                     <input type="hidden" name="maturity_date" id="maturity-date">
                     <input type="hidden" name="interest_frequency" value="annual">
-
-                    <button type="submit" class="btn btn-primary btn-block" id="submit-btn" disabled>
-                        Dodaj obligację
-                    </button>
+                    
+                    <button type="submit" class="btn btn-primary btn-block" id="submit-btn" disabled>Dodaj obligację</button>
                 </form>
             </div>
+        </div>
+        
+        <script>
+            let debounceTimer = null;
 
-            <script>
-                let debounceTimer = null;
-
-                function parseBondCode(bondCode) {
-                    // Usuń spacje i uppercase
-                    bondCode = bondCode.trim().toUpperCase();
-                    
-                    // Wzorzec: 3-4 litery + 4 cyfry (MMYY)
-                    const match = bondCode.match(/^([A-Z]{3,4})(\d{2})(\d{2})$/);
-                    
-                    if (!match) {
-                        return null;
-                    }
-                    
-                    const type = match[1];
-                    const month = match[2];
-                    const year = '20' + match[3];
-                    
-                    // Sprawdź poprawność typu
-                    const validTypes = ['OTS', 'ROR', 'DOR', 'TOS', 'COI', 'EDO', 'ROS', 'ROD'];
-                    if (!validTypes.includes(type)) {
-                        return null;
-                    }
-                    
-                    // Data wykupu
-                    const maturityDate = year + '-' + month + '-01';
-                    
-                    // Oblicz datę emisji (lata wstecz)
-                    let yearsBack = 0;
-                    switch(type) {
-                        case 'EDO':
-                        case 'ROD':
-                            yearsBack = 10;
-                            break;
-                        case 'ROS':
-                            yearsBack = 6;
-                            break;
-                        case 'COI':
-                            yearsBack = 4;
-                            break;
-                        case 'TOS':
-                            yearsBack = 3;
-                            break;
-                        case 'DOR':
-                            yearsBack = 2;
-                            break;
-                        case 'ROR':
-                            yearsBack = 1;
-                            break;
-                        case 'OTS':
-                            yearsBack = 0;
-                            break;
-                    }
-                    
-                    const issueYear = parseInt(year) - yearsBack;
-                    const issueDate = issueYear + '-' + month + '-01';
-                    
-                    // Określ rate_base
-                    let rateBase = null;
-                    if (['COI', 'EDO', 'ROS', 'ROD'].includes(type)) {
-                        rateBase = 'inflation';
-                    } else if (['ROR', 'DOR'].includes(type)) {
-                        rateBase = 'nbp_rate';
-                    }
-                    
-                    return {
-                        type: type,
-                        maturity_date: maturityDate,
-                        issue_date: issueDate,
-                        rate_base: rateBase
-                    };
+            function parseBondCode(bondCode) {
+                bondCode = bondCode.trim().toUpperCase();
+                const match = bondCode.match(/^([A-Z]{3,4})(\d{2})(\d{2})$/);
+                if (!match) return null;
+                const type = match[1];
+                const month = match[2];
+                const year = '20' + match[3];
+                const validTypes = ['OTS', 'ROR', 'DOR', 'TOS', 'COI', 'EDO', 'ROS', 'ROD'];
+                if (!validTypes.includes(type)) return null;
+                const maturityDate = year + '-' + month + '-01';
+                let yearsBack = 0;
+                switch(type) {
+                    case 'EDO': case 'ROD': yearsBack = 10; break;
+                    case 'ROS': yearsBack = 6; break;
+                    case 'COI': yearsBack = 4; break;
+                    case 'TOS': yearsBack = 3; break;
+                    case 'DOR': yearsBack = 2; break;
+                    case 'ROR': yearsBack = 1; break;
+                    case 'OTS': yearsBack = 0; break;
                 }
+                const issueYear = parseInt(year) - yearsBack;
+                const issueDate = issueYear + '-' + month + '-01';
+                return { type: type, maturity_date: maturityDate, issue_date: issueDate };
+            }
 
-                function handleBondCodeInput() {
-                    const input = document.getElementById('bond-code-input');
-                    const code = input.value.trim().toUpperCase();
-                    const bondInfo = document.getElementById('bond-info');
-                    const bondError = document.getElementById('bond-error');
-                    const submitBtn = document.getElementById('submit-btn');
-                    const rateFields = document.getElementById('rate-fields');
-                    
-                    // Reset
-                    bondInfo.style.display = 'none';
-                    bondError.style.display = 'none';
-                    rateFields.style.display = 'none';
-                    submitBtn.disabled = true;
-                    
-                    if (code.length < 6) return;
-                    
-                    const parsed = parseBondCode(code);
-                    
-                    if (!parsed) {
-                        bondError.textContent = 'Nieprawidłowy kod obligacji (np. EDO0935, COI1229)';
-                        bondError.style.display = 'block';
-                        return;
-                    }
-                    
-                    // Wypełnij ukryte pola
-                    document.getElementById('bond-type').value = parsed.type;
-                    document.getElementById('issue-date').value = parsed.issue_date;
-                    document.getElementById('maturity-date').value = parsed.maturity_date;
-                    
-                    // Pokaż info
-                    const typeNames = {
-                        'OTS': '3-miesięczne',
-                        'ROR': 'Roczne zmienne (NBP)',
-                        'DOR': '2-letnie zmienne (NBP)',
-                        'TOS': '3-letnie stałe',
-                        'COI': '4-letnie indeksowane',
-                        'EDO': '10-letnie emerytalne',
-                        'ROS': '6-letnie rodzinne',
-                        'ROD': '12-letnie rodzinne'
-                    };
-                    
-                    const maturityDate = new Date(parsed.maturity_date);
-                    const maturityStr = maturityDate.toLocaleDateString('pl-PL', { year: 'numeric', month: 'long' });
-                    
-                    bondInfo.innerHTML = `✓ ${typeNames[parsed.type]} • Wykup: ${maturityStr}`;
-                    bondInfo.style.display = 'block';
-                    
-                    // Pokaż odpowiednie pola oprocentowania
-                    showRateFields(parsed.type);
-                    
-                    submitBtn.disabled = false;
+            function handleBondCodeInput() {
+                const input = document.getElementById('bond-code-input');
+                const code = input.value.trim().toUpperCase();
+                const bondInfo = document.getElementById('bond-info');
+                const bondError = document.getElementById('bond-error');
+                const submitBtn = document.getElementById('submit-btn');
+                const rateFields = document.getElementById('rate-fields');
+                
+                bondInfo.style.display = 'none';
+                bondError.style.display = 'none';
+                rateFields.style.display = 'none';
+                submitBtn.disabled = true;
+                
+                if (code.length < 6) return;
+                const parsed = parseBondCode(code);
+                
+                if (!parsed) {
+                    bondError.textContent = 'Nieprawidłowy kod obligacji';
+                    bondError.style.display = 'block';
+                    return;
                 }
+                
+                document.getElementById('bond-type').value = parsed.type;
+                document.getElementById('issue-date').value = parsed.issue_date;
+                document.getElementById('maturity-date').value = parsed.maturity_date;
+                
+                bondInfo.textContent = `✓ Typ: ${parsed.type} • Wykup: ${parsed.maturity_date}`;
+                bondInfo.style.display = 'block';
+                
+                // Pokaż pola i instrukcję
+                showRateFields(parsed.type);
+                submitBtn.disabled = false;
+            }
 
-                function showRateFields(type) {
-                    const rateFields = document.getElementById('rate-fields');
-                    const fixedRateField = document.getElementById('fixed-rate-field');
-                    const variableRateFields = document.getElementById('variable-rate-fields');
-                    const rateInstruction = document.getElementById('rate-instruction');
-                    const interestRate = document.getElementById('interest-rate');
-                    const firstYearRate = document.getElementById('first-year-rate');
-                    const interestMargin = document.getElementById('interest-margin');
-                    
-                    // Reset
-                    fixedRateField.style.display = 'none';
-                    variableRateFields.style.display = 'none';
-                    interestRate.required = false;
-                    firstYearRate.required = false;
-                    interestMargin.required = false;
-                    
-                    rateFields.style.display = 'block';
-                    
-                    if (type === 'OTS' || type === 'TOS') {
-                        // Stałe oprocentowanie
-                        fixedRateField.style.display = 'block';
-                        interestRate.required = true;
-                        rateInstruction.textContent = 'Dla ' + type + ': znajdź "oprocentowanie" w liście emisyjnym';
-                    } else if (type === 'ROR' || type === 'DOR') {
-                        // Zmienne NBP
-                        variableRateFields.style.display = 'block';
-                        firstYearRate.required = true;
-                        interestMargin.required = true;
-                        rateInstruction.innerHTML = 'Dla ' + type + ': znajdź "oprocentowanie w pierwszym okresie" oraz "marżę" w liście emisyjnym<br>Potem: stopa NBP + marża';
+            function showRateFields(type) {
+                const rateFields = document.getElementById('rate-fields');
+                const fixedRateField = document.getElementById('fixed-rate-field');
+                const variableRateFields = document.getElementById('variable-rate-fields');
+                const rateInstruction = document.getElementById('rate-instruction');
+                const interestRate = document.getElementById('interest-rate');
+                const firstYearRate = document.getElementById('first-year-rate');
+                
+                fixedRateField.style.display = 'none';
+                variableRateFields.style.display = 'none';
+                interestRate.required = false;
+                firstYearRate.required = false;
+                
+                rateFields.style.display = 'block';
+                
+                if (type === 'OTS' || type === 'TOS') {
+                    fixedRateField.style.display = 'block';
+                    interestRate.required = true;
+                    rateInstruction.textContent = 'Dla ' + type + ': znajdź "oprocentowanie" w liście emisyjnym';
+                } else {
+                    variableRateFields.style.display = 'block';
+                    firstYearRate.required = true;
+                    if(type === 'ROR' || type === 'DOR') {
+                         rateInstruction.innerHTML = 'Dla ' + type + ': znajdź "oprocentowanie w 1. okresie" i "marżę"<br>Potem: stopa NBP + marża';
                     } else {
-                        // Indeksowane inflacją
-                        variableRateFields.style.display = 'block';
-                        firstYearRate.required = true;
-                        interestMargin.required = true;
-                        rateInstruction.innerHTML = 'Dla ' + type + ': znajdź "oprocentowanie w pierwszym roku" oraz "marżę" w liście emisyjnym<br>Potem: inflacja + marża';
+                         rateInstruction.innerHTML = 'Dla ' + type + ': znajdź "oprocentowanie w 1. roku" i "marżę"<br>Potem: inflacja + marża';
                     }
                 }
+            }
 
-                // Debounced input
-                document.getElementById('bond-code-input').addEventListener('input', function() {
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(handleBondCodeInput, 300);
-                });
-
-                // Parse on blur
-                document.getElementById('bond-code-input').addEventListener('blur', handleBondCodeInput);
-            </script>
-
+            document.getElementById('bond-code-input').addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(handleBondCodeInput, 300);
+            });
+        </script>
+        
         <?php else: ?>
-        <!-- Preview Section -->
-        <div class="card preview-section">
-            <div class="preview-header">
-                <h2 class="preview-title">Podgląd importu: <?= htmlspecialchars($previewData['file_name']) ?></h2>
-                <div class="preview-stats">
-                    <div class="stat-item">
-                        <span class="stat-badge new"><?= $previewData['new_count'] ?> nowych</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-badge duplicate"><?= $previewData['duplicate_count'] ?> duplikatów</span>
-                    </div>
-                </div>
+        <div class="data-table-container preview-section">
+            <div style="padding:1.5rem; display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="font-size:1.25rem; font-weight:700;">Podgląd importu: <?= htmlspecialchars($previewData['file_name']) ?></h2>
+                <div><span class="badge positive"><?= $previewData['new_count'] ?> nowe</span></div>
             </div>
-
             <form action="/import/confirm" method="POST">
-                <table class="preview-table">
-                    <thead>
-                        <tr>
-                            <th class="checkbox-cell">
-                                <input type="checkbox" id="select-all" checked>
-                            </th>
-                            <th>Data</th>
-                            <th>Typ</th>
-                            <th>Symbol</th>
-                            <th>Ilość</th>
-                            <th>Cena</th>
-                            <th>Wartość</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
+                <table class="data-table preview-table">
+                    <thead><tr><th><input type="checkbox" id="select-all" checked></th><th>Data</th><th>Symbol</th><th>Ilość</th><th>Cena</th><th>Status</th></tr></thead>
                     <tbody>
                         <?php foreach ($previewData['operations'] as $op): ?>
-                            <?php $isDuplicate = in_array($op['xtb_id'], $previewData['duplicates']); ?>
-                            <tr class="<?= $isDuplicate ? 'duplicate' : '' ?>">
-                                <td class="checkbox-cell">
-                                    <input type="checkbox" 
-                                           name="selected[]" 
-                                           value="<?= $op['xtb_id'] ?>" 
-                                           <?= $isDuplicate ? '' : 'checked' ?>
-                                           class="row-checkbox">
-                                </td>
-                                <td><?= date('Y-m-d H:i', strtotime($op['transaction_date'])) ?></td>
-                                <td>
-                                    <span class="type-badge <?= $op['transaction_type'] ?>">
-                                        <?= $op['transaction_type'] === 'buy' ? 'Kupno' : ($op['transaction_type'] === 'sell' ? 'Sprzedaż' : 'Dywidenda') ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="symbol-badge"><?= htmlspecialchars($op['yahoo_symbol']) ?></span>
-                                    <?php if ($op['xtb_symbol'] !== $op['yahoo_symbol']): ?>
-                                        <small style="color: var(--text-light);">(<?= htmlspecialchars($op['xtb_symbol']) ?>)</small>
-                                    <?php endif; ?>
-                                </td>
-                                <td><?= number_format($op['quantity'], 4, ',', ' ') ?></td>
-                                <td><?= number_format($op['price'], 2, ',', ' ') ?></td>
-                                <td><?= number_format($op['amount'], 2, ',', ' ') ?></td>
-                                <td>
-                                    <?php if ($isDuplicate): ?>
-                                        <span style="color: var(--warning);">Duplikat</span>
-                                    <?php else: ?>
-                                        <span style="color: var(--primary);">Nowy</span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
+                        <?php $isDuplicate = in_array($op['xtb_id'], $previewData['duplicates']); ?>
+                        <tr class="<?= $isDuplicate ? 'duplicate' : '' ?>">
+                            <td><input type="checkbox" name="selected[]" value="<?= $op['xtb_id'] ?>" checked class="row-checkbox"></td>
+                            <td><?= $op['transaction_date'] ?></td>
+                            <td><?= $op['yahoo_symbol'] ?></td>
+                            <td><?= $op['quantity'] ?></td>
+                            <td><?= $op['price'] ?></td>
+                            <td><?= $isDuplicate ? 'Duplikat' : 'Nowy' ?></td>
+                        </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
-
-                <div class="preview-actions">
-                    <a href="/import/cancel" class="btn btn-secondary">Anuluj</a>
-                    <button type="submit" class="btn btn-primary">
-                        Importuj wybrane operacje
-                    </button>
+                <div class="table-footer" style="justify-content:flex-end; gap:1rem;">
+                    <a href="/import/cancel" class="btn btn-cancel">Anuluj</a>
+                    <button type="submit" class="btn btn-primary">Importuj</button>
                 </div>
             </form>
         </div>
         <?php endif; ?>
     </main>
-
     <script>
-        // Drag & drop
-        const uploadArea = document.getElementById('upload-area');
-        const fileInput = document.getElementById('file-input');
-        const uploadForm = document.getElementById('upload-form');
-
-        if (uploadArea && fileInput) {
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
-
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
-
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                if (e.dataTransfer.files.length) {
-                    fileInput.files = e.dataTransfer.files;
-                    uploadForm.submit();
-                }
-            });
-
-            fileInput.addEventListener('change', () => {
-                if (fileInput.files.length) {
-                    uploadForm.submit();
-                }
-            });
-        }
-
-        // Select all checkbox
-        const selectAll = document.getElementById('select-all');
-        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
-
-        if (selectAll) {
-            selectAll.addEventListener('change', () => {
-                rowCheckboxes.forEach(cb => cb.checked = selectAll.checked);
-            });
-
-            rowCheckboxes.forEach(cb => {
-                cb.addEventListener('change', () => {
-                    selectAll.checked = [...rowCheckboxes].every(c => c.checked);
-                });
-            });
-        }
+        const ua=document.getElementById('upload-area');const fi=document.getElementById('file-input');
+        if(ua){ua.addEventListener('click',()=>fi.click());fi.addEventListener('change',()=>document.getElementById('upload-form').submit());}
     </script>
 </body>
 </html>

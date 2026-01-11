@@ -45,9 +45,6 @@ class DashboardController extends AppController {
             $pPrices = $this->priceService->getPricesForHoldings($pHoldings);
             $calculated = $this->priceService->calculatePortfolioValue($pHoldings, $pPrices);
             $portfolioData[$pId] = $calculated['summary'];
-            
-            // DEBUG - usuń po naprawieniu
-            error_log("Portfolio $pId ({$portfolio->getName()}): holdings=" . count($pHoldings) . ", value=" . ($calculated['summary']['total_value'] ?? 'null'));
         }
 
         // Pobierz dane dla wybranego portfela lub wszystkich
@@ -121,26 +118,5 @@ class DashboardController extends AppController {
         }
 
         $this->jsonResponse(['stats' => $stats]);
-    }
-    public function clearHistory(): void {
-    $this->requireAuth();
-    
-    if (!$this->isPost()) {
-        $this->redirect('/import');
-        return;
-    }
-    
-    $userId = $this->getCurrentUserId();
-    
-    try {
-        $stmt = $this->database->prepare("DELETE FROM import_history WHERE user_id = ?");
-        $stmt->execute([$userId]);
-        
-        $_SESSION['success'] = 'Historia importu została wyczyszczona. Możesz teraz zaimportować transakcje ponownie.';
-    } catch (Exception $e) {
-        $_SESSION['error'] = 'Błąd podczas czyszczenia historii importu';
-    }
-    
-    $this->redirect('/import');
     }
 }

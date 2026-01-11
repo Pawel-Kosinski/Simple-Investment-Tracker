@@ -5,100 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aktywa - Investment Tracker</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/styles/app.css">
-    <style>
-     /* Header */
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1rem 2rem;
-            background: #1a1a1a;
-            color: white;
-        }
-
-        .logo {
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .nav {
-            display: flex;
-            gap: 2rem;
-        }
-
-        .nav-link {
-            color: rgba(255,255,255,0.6);
-            text-decoration: none;
-            font-size: 0.875rem;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            color: white;
-        }
-
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .user-name {
-            font-size: 0.875rem;
-            opacity: 0.8;
-        }
-
-        .logout-link {
-            color: rgba(255,255,255,0.6);
-            text-decoration: none;
-            font-size: 0.875rem;
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            font-size: 0.875rem;
-        }
-        
-        .alert-success {
-            background: #d1fae5;
-            color: #065f46;
-            border: 1px solid #6ee7b7;
-        }
-        
-        .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fca5a5;
-        }
-    </style>
+    <link rel="stylesheet" href="/public/styles/app.css?v=6">
 </head>
 <body>
-    <div class="app">
-        <!-- Header -->
-        <header class="header">
-            <h1 class="logo">Investment Tracker</h1>
-            <nav class="nav">
-                <a href="/dashboard" class="nav-link">Podsumowanie</a>
-                <a href="/assets" class="nav-link active">Aktywa</a>
-                <a href="/transactions" class="nav-link">Transakcje</a>
-                <a href="/import" class="nav-link">Import</a>
-            </nav>
-            <div class="user-menu">
-                <span class="user-name"><?= htmlspecialchars($userName) ?></span>
-                <a href="/logout" class="logout-link">Wyloguj</a>
-            </div>
-        </header>
+    <header class="header">
+        <h1 class="logo">Investment Tracker</h1>
+        <nav class="nav">
+            <a href="/dashboard" class="nav-link">Podsumowanie</a>
+            <a href="/assets" class="nav-link active">Aktywa</a>
+            <a href="/transactions" class="nav-link">Transakcje</a>
+            <a href="/import" class="nav-link">Import</a>
+        </nav>
+        <div class="user-menu">
+            <span class="user-name"><?= htmlspecialchars($userName) ?></span>
+            <a href="/logout" class="logout-link">Wyloguj</a>
+        </div>
+    </header>
 
-        <main class="main">
-            <!-- Page Title -->
+    <main class="main">
+        <div class="page-header">
             <div class="page-title">
                 <h2>Twoje aktywa</h2>
                 <?php if (!empty($portfolios)): ?>
-                <div class="portfolio-filter">
-                    <select onchange="window.location.href='/assets' + (this.value ? '?portfolio=' + this.value : '')">
+                <div class="portfolio-filter" style="display:inline-block; margin-left: 1rem;">
+                    <select onchange="window.location.href='/assets' + (this.value ? '?portfolio=' + this.value : '')" class="form-select" style="width: auto; padding: 0.5rem 2rem 0.5rem 0.75rem;">
                         <option value="">Wszystkie portfele</option>
                         <?php foreach ($portfolios as $portfolio): ?>
                             <option value="<?= $portfolio->getId() ?>" <?= $activePortfolioId === $portfolio->getId() ? 'selected' : '' ?>>
@@ -109,241 +39,104 @@
                 </div>
                 <?php endif; ?>
             </div>
+        </div>
 
-            <!-- Messages -->
-            <?php if (isset($_SESSION['success'])): ?>
-                <div class="alert alert-success">
-                    <?= htmlspecialchars($_SESSION['success']) ?>
-                </div>
-                <?php unset($_SESSION['success']); ?>
-            <?php endif; ?>
-            
-            <?php if (isset($_SESSION['error'])): ?>
-                <div class="alert alert-error">
-                    <?= htmlspecialchars($_SESSION['error']) ?>
-                </div>
-                <?php unset($_SESSION['error']); ?>
-            <?php endif; ?>
+        <?php if (isset($_SESSION['success'])): ?>
+            <div class="alert alert-success"><?= htmlspecialchars($_SESSION['success']) ?></div>
+            <?php unset($_SESSION['success']); ?>
+        <?php endif; ?>
 
-            <!-- Holdings Table -->
-            <section class="holdings-section">
-                <?php if (empty($holdings)): ?>
-                    <div class="empty-state">
-                        <p>Brak aktywów w portfelu</p>
-                        <a href="/transactions/add" class="btn btn-primary">Dodaj transakcję</a>
-                    </div>
-                <?php else: ?>
-                    <table class="holdings-table">
-                        <thead>
+        <?php if (empty($holdings)): ?>
+            <div class="alert alert-warning" style="text-align:center; padding: 3rem;">
+                <div style="font-size: 2rem; margin-bottom: 1rem;">💼</div>
+                <p>Brak aktywów w portfelu.</p>
+                <a href="/import" class="btn btn-primary" style="margin-top: 1rem;">Dodaj pierwsze aktywo</a>
+            </div>
+        <?php else: ?>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Nazwa</th>
+                            <th>Ilość</th>
+                            <th>Śr. cena</th>
+                            <th>Akt. cena</th>
+                            <th>Wartość</th>
+                            <th>Zysk/Strata</th>
+                            <th>Akcje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($holdings as $holding): ?>
                             <tr>
-                                <th class="col-symbol">Symbol</th>
-                                <th class="col-name">Nazwa</th>
-                                <th class="col-quantity">Ilość</th>
-                                <th class="col-avg-price">Śr. cena zakupu</th>
-                                <th class="col-current-price">Akt. cena</th>
-                                <th class="col-value">Wartość</th>
-                                <th class="col-profit">Zysk/Strata</th>
-                                <th class="col-actions">Akcje</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($holdings as $holding): ?>
-                                <tr>
-                                    <td class="col-symbol">
-                                        <span class="symbol-badge"><?= htmlspecialchars($holding['symbol']) ?></span>
-                                    </td>
-                                    <td class="col-name"><?= htmlspecialchars($holding['name'] ?? '—') ?></td>
-                                    <td class="col-quantity"><?= number_format($holding['quantity'], 4, ',', ' ') ?></td>
-                                    <td class="col-avg-price">
-                                        <?= number_format($holding['avg_buy_price'], 2, ',', ' ') ?>
-                                        <span class="currency"><?= $holding['currency'] ?></span>
-                                    </td>
-                                    <td class="col-current-price">
-                                        <?php if ($holding['current_price'] !== null): ?>
-                                            <?= number_format($holding['current_price'], 2, ',', ' ') ?>
-                                            <span class="currency"><?= $holding['currency'] ?></span>
-                                        <?php else: ?>
-                                            <span class="no-data">—</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="col-value">
-                                        <?php if ($holding['current_value_pln'] !== null): ?>
-                                            <?= number_format($holding['current_value_pln'], 2, ',', ' ') ?>
-                                            <span class="currency">PLN</span>
-                                        <?php else: ?>
-                                            <?= number_format($holding['invested_value_pln'] ?? $holding['invested_value'], 2, ',', ' ') ?>
-                                            <span class="currency">PLN</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="col-profit <?= ($holding['current_profit_pln'] ?? 0) >= 0 ? 'positive' : 'negative' ?>">
-                                        <?php if ($holding['current_profit_pln'] !== null): ?>
-                                            <span class="profit-value">
-                                                <?= $holding['current_profit_pln'] >= 0 ? '+' : '' ?><?= number_format($holding['current_profit_pln'], 2, ',', ' ') ?> PLN
-                                            </span>
-                                            <span class="profit-percent">
-                                                (<?= $holding['profit_percent'] >= 0 ? '+' : '' ?><?= number_format($holding['profit_percent'], 1, ',', ' ') ?>%)
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="no-data">—</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="col-actions">
-                                        <button onclick="confirmDelete(<?= $holding['asset_id'] ?>, <?= json_encode($holding['symbol']) ?>)" 
-                                                class="btn-delete" 
-                                                title="Usuń aktywo">
-                                            🗑️
-                                        </button>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                        <tfoot>
-                            <tr class="totals-row">
-                                <td colspan="6" class="totals-label">Razem</td>
-                                <td class="col-value total-value">
-                                    <?= number_format($portfolioSummary['total_value'] ?? 0, 2, ',', ' ') ?> PLN
+                                <td><span class="badge" style="background:#f1f5f9; color:#1e293b;"><?= htmlspecialchars($holding['symbol']) ?></span></td>
+                                <td><?= htmlspecialchars($holding['name'] ?? '—') ?></td>
+                                <td><?= number_format($holding['quantity'], 4, ',', ' ') ?></td>
+                                <td>
+                                    <?= number_format($holding['avg_buy_price'], 2, ',', ' ') ?>
+                                    <span style="color:#6b7280; font-size:0.75rem;"><?= $holding['currency'] ?></span>
                                 </td>
-                                <td class="col-profit total-profit <?= ($portfolioSummary['total_profit'] ?? 0) >= 0 ? 'positive' : 'negative' ?>">
-                                    <?= ($portfolioSummary['total_profit'] ?? 0) >= 0 ? '+' : '' ?><?= number_format($portfolioSummary['total_profit'] ?? 0, 2, ',', ' ') ?> PLN
-                                    (<?= ($portfolioSummary['total_profit_percent'] ?? 0) >= 0 ? '+' : '' ?><?= number_format($portfolioSummary['total_profit_percent'] ?? 0, 1, ',', ' ') ?>%)
+                                <td>
+                                    <?= $holding['current_price'] ? number_format($holding['current_price'], 2, ',', ' ') : '—' ?>
+                                    <?php if($holding['current_price']): ?><span style="color:#6b7280; font-size:0.75rem;"><?= $holding['currency'] ?></span><?php endif; ?>
                                 </td>
-                                <td></td>
+                                <td style="font-weight:600;">
+                                    <?= number_format($holding['current_value_pln'] ?? 0, 2, ',', ' ') ?> <span style="font-size:0.75rem;">PLN</span>
+                                </td>
+                                <td class="<?= ($holding['current_profit_pln']??0)>=0?'positive':'negative' ?>" style="font-weight:600;">
+                                    <?= (($holding['current_profit_pln']??0)>=0?'+':'') . number_format($holding['current_profit_pln']??0, 2, ',', ' ') ?> PLN
+                                    <br><small style="font-weight:400;">(<?= (($holding['profit_percent']??0)>=0?'+':'') . number_format($holding['profit_percent']??0, 1, ',', ' ') ?>%)</small>
+                                </td>
+                                <td>
+                                    <button onclick="confirmDelete(<?= $holding['asset_id'] ?>, '<?= htmlspecialchars($holding['symbol'], ENT_QUOTES) ?>')" class="btn btn-cancel" style="padding:0.25rem 0.5rem;" title="Usuń">🗑️</button>
+                                </td>
                             </tr>
-                        </tfoot>
-                    </table>
-                    
-                    <div class="table-footer">
-                        <span class="update-info">Kursy z Yahoo Finance • Aktualizacja co 15 min</span>
-                        <a href="/dashboard/refresh<?= $activePortfolioId ? '?portfolio=' . $activePortfolioId : '' ?>" class="refresh-link">Odśwież kursy</a>
-                    </div>
-                <?php endif; ?>
-            </section>
-        </main>
-    </div>
-</body>
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="modal" style="display: none;">
+                        <?php endforeach; ?>
+                    </tbody>
+                    <tfoot>
+                        <tr class="totals-row">
+                            <td colspan="5" class="totals-label">Razem</td>
+                            <td class="total-value">
+                                <?= number_format($portfolioSummary['total_value'] ?? 0, 2, ',', ' ') ?> PLN
+                            </td>
+                            <td class="total-profit <?= ($portfolioSummary['total_profit'] ?? 0) >= 0 ? 'positive' : 'negative' ?>">
+                                <?= ($portfolioSummary['total_profit'] ?? 0) >= 0 ? '+' : '' ?><?= number_format($portfolioSummary['total_profit'] ?? 0, 2, ',', ' ') ?> PLN
+                                <br><small>(<?= ($portfolioSummary['total_profit_percent'] ?? 0) >= 0 ? '+' : '' ?><?= number_format($portfolioSummary['total_profit_percent'] ?? 0, 1, ',', ' ') ?>%)</small>
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                
+                <div class="table-footer">
+                    <span style="font-size: 0.75rem;">Kursy z Yahoo Finance • Aktualizacja co 15 min</span>
+                    <a href="/dashboard/refresh<?= $activePortfolioId ? '?portfolio=' . $activePortfolioId : '' ?>" class="refresh-link">Odśwież kursy</a>
+                </div>
+            </div>
+        <?php endif; ?>
+    </main>
+
+    <div id="deleteModal" class="modal">
         <div class="modal-content">
             <h3>Potwierdź usunięcie</h3>
             <p>Czy na pewno chcesz usunąć aktywo <strong id="deleteAssetName"></strong>?</p>
-            <p style="color: #dc2626; font-size: 0.875rem;">
-                ⚠️ Zostaną usunięte wszystkie transakcje powiązane z tym aktywem!<br>
-                💡 Możesz zaimportować je ponownie - nie będzie duplikatów.
-            </p>
             <div class="modal-actions">
-                <button onclick="closeDeleteModal()" class="btn-cancel">Anuluj</button>
-                <form id="deleteForm" method="POST" action="/assets/delete" style="display: inline;">
+                <button onclick="closeDeleteModal()" class="btn btn-cancel">Anuluj</button>
+                <form id="deleteForm" method="POST" action="/assets/delete">
                     <input type="hidden" name="asset_id" id="deleteAssetId">
-                    <button type="submit" class="btn-confirm-delete">Usuń</button>
+                    <button type="submit" class="btn btn-danger">Usuń</button>
                 </form>
             </div>
         </div>
     </div>
-
-    <style>
-        .col-actions {
-            width: 60px;
-            text-align: center;
-        }
-        
-        .btn-delete {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: 0.25rem 0.5rem;
-            opacity: 0.6;
-            transition: opacity 0.2s;
-        }
-        
-        .btn-delete:hover {
-            opacity: 1;
-        }
-        
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        
-        .modal-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            max-width: 500px;
-            width: 90%;
-        }
-        
-        .modal-content h3 {
-            margin-top: 0;
-            color: #1a1a1a;
-        }
-        
-        .modal-actions {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
-            justify-content: flex-end;
-        }
-        
-        .btn-cancel {
-            padding: 0.5rem 1rem;
-            background: #f3f4f6;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.875rem;
-        }
-        
-        .btn-cancel:hover {
-            background: #e5e7eb;
-        }
-        
-        .btn-confirm-delete {
-            padding: 0.5rem 1rem;
-            background: #dc2626;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.875rem;
-        }
-        
-        .btn-confirm-delete:hover {
-            background: #b91c1c;
-        }
-    </style>
-
     <script>
-        function confirmDelete(assetId, assetSymbol) {
-            document.getElementById('deleteAssetId').value = assetId;
-            document.getElementById('deleteAssetName').textContent = assetSymbol;
+        function confirmDelete(id, symbol) {
+            document.getElementById('deleteAssetId').value = id;
+            document.getElementById('deleteAssetName').textContent = symbol;
             document.getElementById('deleteModal').style.display = 'flex';
         }
-        
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').style.display = 'none';
-        }
-        
-        // Close modal on ESC
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeDeleteModal();
-            }
-        });
-        
-        // Close modal on background click
-        document.getElementById('deleteModal')?.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeDeleteModal();
-            }
-        });
+        function closeDeleteModal() { document.getElementById('deleteModal').style.display = 'none'; }
     </script>
+</body>
 </html>

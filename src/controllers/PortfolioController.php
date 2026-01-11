@@ -57,7 +57,6 @@ class PortfolioController extends AppController {
             $_SESSION['success'] = 'Portfel "' . htmlspecialchars($name) . '" został utworzony!';
             $this->redirect('/dashboard');
         } catch (Exception $e) {
-            error_log('Error creating portfolio: ' . $e->getMessage());
             $_SESSION['error'] = 'Błąd podczas tworzenia portfela';
             $this->redirect('/dashboard');
         }
@@ -104,7 +103,6 @@ class PortfolioController extends AppController {
             $this->portfolioRepository->delete($portfolioId, $userId);
             $_SESSION['success'] = 'Portfel został usunięty';
         } catch (Exception $e) {
-            error_log('Error deleting portfolio: ' . $e->getMessage());
             $_SESSION['error'] = 'Błąd podczas usuwania portfela';
         }
         

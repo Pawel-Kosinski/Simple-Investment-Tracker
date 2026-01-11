@@ -38,12 +38,6 @@ class SecurityController extends AppController {
             return;
         }
 
-        // DEBUG: log hash and verification result (remove in production)
-        error_log('Login attempt for: ' . $email);
-        error_log('Provided password length: ' . strlen($password));
-        error_log('Stored hash (first 10 chars): ' . substr($user->getPassword(), 0, 10));
-        error_log('password_verify result: ' . (password_verify($password, $user->getPassword()) ? 'true' : 'false'));
-
         if (!password_verify($password, $user->getPassword())) {
             $this->render('login', ['message' => 'Nieprawidłowy email lub hasło']);
             return;

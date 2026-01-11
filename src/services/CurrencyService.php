@@ -21,33 +21,26 @@ class CurrencyService {
         }
         
         try {
-            // Sprawdź cache
             $cached = $this->getFromCache($currency);
             if ($cached !== null) {
-                error_log("Currency $currency: using cached rate $cached");
                 return $cached;
             }
         } catch (Exception $e) {
-            error_log("Currency cache error for $currency: " . $e->getMessage());
+            // Cache error - continue to fetch from API
         }
         
         try {
-            // Pobierz z NBP API
             $rate = $this->fetchFromNBP($currency);
             
             if ($rate !== null) {
-                error_log("Currency $currency: fetched from NBP: $rate");
                 $this->saveToCache($currency, $rate);
                 return $rate;
             }
         } catch (Exception $e) {
-            error_log("NBP API error for $currency: " . $e->getMessage());
+            // API error - use fallback
         }
         
-        // Fallback - jeśli NBP nie ma, użyj domyślnych wartości
-        $fallback = $this->getFallbackRate($currency);
-        error_log("Currency $currency: using fallback rate $fallback");
-        return $fallback;
+        return $this->getFallbackRate($currency);
     }
     
     /**
@@ -119,7 +112,6 @@ class CurrencyService {
             return null;
             
         } catch (Exception $e) {
-            error_log("NBP API error for $currency: " . $e->getMessage());
             return null;
         }
     }

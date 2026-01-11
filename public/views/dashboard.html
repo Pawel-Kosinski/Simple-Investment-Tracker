@@ -5,55 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Investment Tracker</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/styles/app.css">
+    <link rel="stylesheet" href="/public/styles/app.css?v=8">
     <style>
-.header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1rem 2rem;
-            background: #1a1a1a;
-            color: white;
-        }
-
-        .logo {
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .nav {
-            display: flex;
-            gap: 2rem;
-        }
-
-        .nav-link {
-            color: rgba(255,255,255,0.6);
-            text-decoration: none;
-            font-size: 0.875rem;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            color: white;
-        }
-
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .user-name {
-            font-size: 0.875rem;
-            opacity: 0.8;
-        }
-
-        .logout-link {
-            color: rgba(255,255,255,0.6);
-            text-decoration: none;
-            font-size: 0.875rem;
-        }
-        /* Stats Grid */
+        /* Lokalne style specyficzne dla Dashboardu */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -62,229 +16,121 @@
         }
 
         .stat-card {
-            border: 2px solid var(--border);
-            border-radius: 16px;
-            padding: 1.25rem 1.5rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .stat-label {
-            font-size: 0.9375rem;
-            color: var(--text);
+            font-size: 0.875rem;
+            color: var(--text-light);
             margin-bottom: 0.5rem;
         }
 
         .stat-value {
-            font-size: 1.75rem;
+            font-size: 1.5rem;
             font-weight: 700;
+            color: var(--text);
         }
 
-        .stat-value.positive {
-            color: var(--positive);
-        }
+        /* Kolory wartości */
+        .positive { color: #16a34a !important; }
+        .negative { color: #dc2626 !important; }
 
-        .stat-value.negative {
-            color: var(--negative);
-        }
-
-        /* Portfolios Section */
-        .portfolios-section {
-            margin-top: 2rem;
-        }
-
+        /* Grid Portfeli */
         .portfolios-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 1.5rem;
         }
-
-        /* Portfolio Card */
+        
+        /* Karta Portfela - PEŁNY WYGLĄD */
         .portfolio-card {
-            border: 2px solid var(--border);
-            border-radius: 16px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
             padding: 1.5rem;
             text-decoration: none;
             color: inherit;
             display: block;
-            transition: border-color 0.15s;
+            transition: all 0.2s;
         }
-
-        .portfolio-card:hover {
-            border-color: var(--text);
+        .portfolio-card:hover { 
+            border-color: #9ca3af; 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
         }
-
-        .portfolio-header {
-            margin-bottom: 1rem;
-        }
-
-        .portfolio-name {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-
-        .portfolio-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-
-        .portfolio-badges {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin-top: 0.75rem;
-            margin-bottom: 1.25rem;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 0.35rem 0.75rem;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-
-        .badge.positive {
-            background: var(--positive);
-            color: white;
-        }
-
-        .badge.negative {
-            background: var(--negative);
-            color: white;
-        }
-
-        .profit-text {
-            font-size: 1rem;
-            font-weight: 500;
-        }
-
-        .profit-text.positive {
-            color: var(--positive);
-        }
-
-        .profit-text.negative {
-            color: var(--negative);
-        }
-
-        /* Portfolio Stats */
+        
+        .portfolio-name { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .portfolio-value { font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; }
+        
+        .portfolio-badges { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; font-size: 0.875rem; align-items: center; }
+        
+        /* Szczegółowe statystyki w karcie */
         .portfolio-stats {
             display: flex;
             flex-direction: column;
-            gap: 0.625rem;
+            gap: 0.75rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
         }
-
+        
         .portfolio-stat-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-
-        .portfolio-stat-label {
-            font-size: 0.9375rem;
-            color: var(--text);
-        }
-
-        .portfolio-stat-value {
             font-size: 0.875rem;
+        }
+        
+        .portfolio-stat-label { color: var(--text-light); }
+        .portfolio-stat-value { font-weight: 600; }
+        
+        /* Badge wewnątrz wierszy statystyk */
+        .stat-badge-sm {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
             font-weight: 600;
         }
-
-        .portfolio-stat-value.badge {
-            padding: 0.25rem 0.625rem;
-            font-size: 0.8125rem;
-        }
-
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1.5rem;
-        }
-
-        .section-header .section-title {
-            margin-bottom: 0;
-        }
-
-        .btn-secondary {
-            padding: 0.5rem 1rem;
-            background: white;
-            color: #667eea;
-            border: 1.5px solid #667eea;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-secondary:hover {
-            background: #667eea;
-            color: white;
-            transform: translateY(-1px);
-        }
-
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .portfolios-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stat-value {
-                font-size: 1.5rem;
-            }
+        .stat-badge-sm.positive { background: #dcfce7; color: #166534; }
+        .stat-badge-sm.negative { background: #fee2e2; color: #991b1b; }
+        
+        @media (max-width: 900px) {
+            .stats-grid, .portfolios-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="app">
-        <!-- Header -->
-        <header class="header">
-            <h1 class="logo">Investment Tracker</h1>
-            <nav class="nav">
-                <a href="/dashboard" class="nav-link active">Podsumowanie</a>
-                <a href="/assets" class="nav-link">Aktywa</a>
-                <a href="/transactions" class="nav-link">Transakcje</a>
-                <a href="/import" class="nav-link">Import</a>
-            </nav>
-            <div class="user-menu">
-                <span class="user-name"><?= htmlspecialchars($userName) ?></span>
-                <a href="/logout" class="logout-link">Wyloguj</a>
-            </div>
-        </header>
+    <header class="header">
+        <h1 class="logo">Investment Tracker</h1>
+        <nav class="nav">
+            <a href="/dashboard" class="nav-link active">Podsumowanie</a>
+            <a href="/assets" class="nav-link">Aktywa</a>
+            <a href="/transactions" class="nav-link">Transakcje</a>
+            <a href="/import" class="nav-link">Import</a>
+        </nav>
+        <div class="user-menu">
+            <span class="user-name"><?= htmlspecialchars($userName) ?></span>
+            <a href="/logout" class="logout-link">Wyloguj</a>
+        </div>
+    </header>
 
-        <main class="main">
-        <!-- Summary Section -->
+    <main class="main">
         <h1 class="section-title">Podsumowanie portfeli w przeliczeniu na PLN</h1>
 
         <?php
-            // Oblicz statystyki zbiorcze
             $totalValue = $portfolioSummary['total_value'] ?? 0;
             $totalProfit = $portfolioSummary['total_profit'] ?? 0;
             $currentProfit = $portfolioSummary['current_profit'] ?? 0;
-            $totalCost = $portfolioSummary['total_cost'] ?? 0;
             $totalProfitPercent = $portfolioSummary['total_profit_percent'] ?? 0;
             $dailyChange = $portfolioSummary['daily_change'] ?? 0;
             $dailyChangePercent = $portfolioSummary['daily_change_percent'] ?? 0;
-            
-            // Policz walory wzrosty/spadki
-            $gainers = 0;
-            $losers = 0;
+            $gainers = 0; $losers = 0;
             foreach ($holdings ?? [] as $h) {
                 if (($h['current_profit'] ?? 0) > 0) $gainers++;
                 elseif (($h['current_profit'] ?? 0) < 0) $losers++;
@@ -334,22 +180,19 @@
             </div>
             <div class="stat-card">
                 <div class="stat-label">Walory wzrosty</div>
-                <div class="stat-value <?= $gainers > 0 ? 'positive' : '' ?>"><?= $gainers ?></div>
+                <div class="stat-value positive"><?= $gainers ?></div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Walory spadki</div>
-                <div class="stat-value <?= $losers > 0 ? 'negative' : '' ?>"><?= $losers ?></div>
+                <div class="stat-value negative"><?= $losers ?></div>
             </div>
         </div>
 
-        <!-- Portfolios Section -->
         <section class="portfolios-section">
             <div class="section-header">
-                <h2 class="section-title">Portfele</h2>
+                <h2 class="section-title" style="margin-bottom:0">Portfele</h2>
                 <?php if (!empty($portfolios)): ?>
-                    <button onclick="openCreatePortfolioModal()" class="btn btn-secondary">
-                        ➕ Nowy portfel
-                    </button>
+                    <button onclick="openCreatePortfolioModal()" class="btn btn-secondary">➕ Nowy portfel</button>
                 <?php endif; ?>
             </div>
 
@@ -361,6 +204,7 @@
                             $pValue = $pData['total_value'] ?? 0;
                             $pProfit = $pData['total_profit'] ?? 0;
                             $pProfitPercent = $pData['total_profit_percent'] ?? 0;
+                            // Te dane są potrzebne do pełnego widoku:
                             $pDailyChange = $pData['daily_change'] ?? 0;
                             $pDailyChangePercent = $pData['daily_change_percent'] ?? 0;
                         ?>
@@ -371,10 +215,10 @@
                             </div>
 
                             <div class="portfolio-badges">
-                                <span class="badge <?= $pProfitPercent >= 0 ? 'positive' : 'negative' ?>">
+                                <span class="stat-badge-sm <?= $pProfitPercent >= 0 ? 'positive' : 'negative' ?>">
                                     <?= $pProfitPercent >= 0 ? '+' : '' ?><?= number_format($pProfitPercent, 1) ?> %
                                 </span>
-                                <span class="profit-text <?= $pProfit >= 0 ? 'positive' : 'negative' ?>">
+                                <span class="<?= $pProfit >= 0 ? 'positive' : 'negative' ?>" style="font-weight:600;">
                                     <?= $pProfit >= 0 ? '+' : '' ?><?= number_format($pProfit, 2, ',', ' ') ?> PLN
                                 </span>
                             </div>
@@ -382,25 +226,25 @@
                             <div class="portfolio-stats">
                                 <div class="portfolio-stat-row">
                                     <span class="portfolio-stat-label">Zmiana dzienna</span>
-                                    <span class="portfolio-stat-value badge <?= $pDailyChangePercent >= 0 ? 'positive' : 'negative' ?>">
+                                    <span class="portfolio-stat-value stat-badge-sm <?= $pDailyChangePercent >= 0 ? 'positive' : 'negative' ?>">
                                         <?= $pDailyChangePercent >= 0 ? '+' : '' ?><?= number_format($pDailyChangePercent, 2) ?> %
                                     </span>
                                 </div>
                                 <div class="portfolio-stat-row">
                                     <span class="portfolio-stat-label">Zysk dzienny</span>
-                                    <span class="portfolio-stat-value badge <?= $pDailyChange >= 0 ? 'positive' : 'negative' ?>">
+                                    <span class="portfolio-stat-value stat-badge-sm <?= $pDailyChange >= 0 ? 'positive' : 'negative' ?>">
                                         <?= $pDailyChange >= 0 ? '+' : '' ?><?= number_format($pDailyChange, 2) ?> PLN
                                     </span>
                                 </div>
                                 <div class="portfolio-stat-row">
                                     <span class="portfolio-stat-label">Zysk całkowity</span>
-                                    <span class="portfolio-stat-value badge <?= $pProfit >= 0 ? 'positive' : 'negative' ?>">
+                                    <span class="portfolio-stat-value stat-badge-sm <?= $pProfit >= 0 ? 'positive' : 'negative' ?>">
                                         <?= $pProfit >= 0 ? '+' : '' ?><?= number_format($pProfit, 2) ?> PLN
                                     </span>
                                 </div>
                                 <div class="portfolio-stat-row">
                                     <span class="portfolio-stat-label">Stopa zwrotu</span>
-                                    <span class="portfolio-stat-value badge <?= $pProfitPercent >= 0 ? 'positive' : 'negative' ?>">
+                                    <span class="portfolio-stat-value stat-badge-sm <?= $pProfitPercent >= 0 ? 'positive' : 'negative' ?>">
                                         <?= $pProfitPercent >= 0 ? '+' : '' ?><?= number_format($pProfitPercent, 2) ?> %
                                     </span>
                                 </div>
@@ -408,207 +252,38 @@
                         </a>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📁</div>
-                        <h3 class="empty-state-title">Brak portfeli</h3>
-                        <p class="empty-state-text">Utwórz swój pierwszy portfel, aby zacząć śledzić inwestycje</p>
-                        <button onclick="openCreatePortfolioModal()" class="btn btn-primary">
-                            ➕ Utwórz pierwszy portfel
-                        </button>
+                    <div style="grid-column: 1/-1; text-align:center; padding:3rem; background:white; border-radius:12px; border:1px solid var(--border);">
+                        <h3>Brak portfeli</h3>
+                        <p>Utwórz swój pierwszy portfel, aby zacząć.</p>
+                        <button onclick="openCreatePortfolioModal()" class="btn btn-primary">Utwórz portfel</button>
                     </div>
                 <?php endif; ?>
             </div>
         </section>
     </main>
-    </div>
 
-    <!-- Create Portfolio Modal -->
-    <div id="createPortfolioModal" class="modal" style="display: none;">
+    <div id="createPortfolioModal" class="modal">
         <div class="modal-content">
             <h3>Utwórz nowy portfel</h3>
             <form method="POST" action="/portfolio/create">
                 <div class="form-group">
-                    <label for="portfolioName">Nazwa portfela *</label>
-                    <input type="text" id="portfolioName" name="name" required 
-                           maxlength="100"
-                           placeholder="np. Długoterminowy, Oszczędności, Trading">
+                    <label>Nazwa portfela *</label>
+                    <input type="text" name="name" required class="form-input" placeholder="np. Oszczędności">
                 </div>
-
                 <div class="form-group">
-                    <label for="portfolioDescription">Opis (opcjonalnie)</label>
-                    <textarea id="portfolioDescription" name="description" 
-                              rows="3"
-                              placeholder="Krótki opis portfela..."></textarea>
+                    <label>Opis</label>
+                    <textarea name="description" rows="3" class="form-input"></textarea>
                 </div>
-
                 <div class="modal-actions">
-                    <button type="button" onclick="closeCreatePortfolioModal()" class="btn-cancel">
-                        Anuluj
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        Utwórz portfel
-                    </button>
+                    <button type="button" onclick="closeCreatePortfolioModal()" class="btn btn-cancel">Anuluj</button>
+                    <button type="submit" class="btn btn-primary">Utwórz portfel</button>
                 </div>
             </form>
         </div>
     </div>
-
-    <style>
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .empty-state-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-        }
-
-        .empty-state-title {
-            font-size: 1.5rem;
-            color: #1a1a1a;
-            margin-bottom: 0.5rem;
-        }
-
-        .empty-state-text {
-            color: #6b7280;
-            margin-bottom: 2rem;
-        }
-
-        /* Modal */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            max-width: 500px;
-            width: 90%;
-        }
-
-        .modal-content h3 {
-            margin-top: 0;
-            margin-bottom: 1.5rem;
-            color: #1a1a1a;
-        }
-
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #374151;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1.5px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-family: inherit;
-            box-sizing: border-box;
-            transition: border-color 0.2s;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
-            justify-content: flex-end;
-        }
-
-        .btn-cancel {
-            padding: 0.75rem 1.5rem;
-            background: #f3f4f6;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            font-weight: 500;
-            transition: background 0.2s;
-        }
-
-        .btn-cancel:hover {
-            background: #e5e7eb;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-    </style>
-
     <script>
-        function openCreatePortfolioModal() {
-            document.getElementById('createPortfolioModal').style.display = 'flex';
-        }
-
-        function closeCreatePortfolioModal() {
-            document.getElementById('createPortfolioModal').style.display = 'none';
-        }
-
-        // Close modal on ESC
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeCreatePortfolioModal();
-            }
-        });
-
-        // Close modal on background click
-        document.getElementById('createPortfolioModal')?.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeCreatePortfolioModal();
-            }
-        });
+        function openCreatePortfolioModal() { document.getElementById('createPortfolioModal').style.display = 'flex'; }
+        function closeCreatePortfolioModal() { document.getElementById('createPortfolioModal').style.display = 'none'; }
     </script>
-
 </body>
 </html>

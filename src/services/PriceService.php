@@ -95,14 +95,12 @@ class PriceService {
         curl_close($ch);
         
         if ($response === false || $httpCode !== 200) {
-            error_log("PriceService: Failed to fetch $symbol - HTTP $httpCode, Error: $error");
             return null;
         }
         
         $data = json_decode($response, true);
         
         if (!isset($data['chart']['result'][0])) {
-            error_log("PriceService: Invalid response for $symbol: " . substr($response, 0, 200));
             return null;
         }
         
@@ -114,14 +112,11 @@ class PriceService {
         $currency = $meta['currency'] ?? 'USD';
         
         if ($price === null) {
-            error_log("PriceService: No price in response for $symbol");
             return null;
         }
         
         $change = $previousClose ? ($price - $previousClose) : 0;
         $changePercent = $previousClose ? (($change / $previousClose) * 100) : 0;
-        
-        error_log("PriceService: $symbol - price=$price, prevClose=$previousClose, change=$change");
         
         return [
             'symbol' => $symbol,
@@ -332,12 +327,8 @@ class PriceService {
             $currency = $holding['currency'] ?? 'PLN';
             try {
                 $exchangeRate = $this->currencyService->getExchangeRate($currency);
-                // DEBUG
-                error_log("CURRENCY DEBUG: Symbol={$holding['symbol']}, Currency=$currency, Rate=$exchangeRate");
             } catch (Exception $e) {
-                // Fallback jeśli CurrencyService nie działa
-                error_log("CurrencyService error for $currency: " . $e->getMessage());
-                $exchangeRate = $currency === 'PLN' ? 1.0 : 4.0; // fallback
+                $exchangeRate = $currency === 'PLN' ? 1.0 : 4.0;
             }
             
             $currentValuePLN = $currentValue * $exchangeRate;

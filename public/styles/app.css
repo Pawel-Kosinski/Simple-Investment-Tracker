@@ -1,487 +1,131 @@
 /* =============================================
-   Investment Tracker - Minimalist Design
+   GLOBAL STYLES (Shared across all pages)
    ============================================= */
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+:root {
+    --bg: #f8fafc;
+    --text: #1a1a1a;
+    --text-light: #6b7280;
+    --border: #e5e7eb;
+    --primary: #667eea;
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --positive: #16a34a;
+    --negative: #dc2626;
+    --card-bg: #ffffff;
 }
 
-:root {
-    --bg: #ffffff;
-    --text: #000000;
-    --text-light: #666666;
-    --border: #e5e5e5;
-    --positive: #3ab12a;
-    --negative: #dc2626;
-    --accent: #000000;
-    --card-bg: #fafafa;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 14px;
     color: var(--text);
     background: var(--bg);
     line-height: 1.5;
+    font-size: 14px;
 }
 
-.app {
-    min-height: 100vh;
-}
+.app { min-height: 100vh; display: flex; flex-direction: column; }
 
-/* Header */
+/* --- HEADER & NAVIGATION --- */
 .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem 2rem;
-    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 2rem; background: #1a1a1a; color: white;
 }
-
-.logo {
-    font-size: 1rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-}
-
-.nav {
-    display: flex;
-    gap: 2rem;
-}
-
+.logo { font-size: 1rem; font-weight: 600; color: white; }
+.nav { display: flex; gap: 2rem; }
 .nav-link {
-    color: var(--text-light);
-    text-decoration: none;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: color 0.15s;
+    color: rgba(255,255,255,0.6); text-decoration: none;
+    font-size: 0.875rem; font-weight: 500; transition: color 0.2s;
+}
+.nav-link:hover, .nav-link.active { color: white; }
+.user-menu { display: flex; align-items: center; gap: 1rem; }
+.user-name { font-size: 0.875rem; opacity: 0.8; color: white; }
+.logout-link { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem; }
+.logout-link:hover { color: white; }
+
+/* --- MAIN LAYOUT --- */
+.main { padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+.page-title h2, .section-title {
+    font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem; color: #1a1a1a;
 }
 
-.nav-link:hover,
-.nav-link.active {
-    color: var(--text);
-}
-
-.user-menu {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    font-size: 0.875rem;
-}
-
-.user-name {
-    color: var(--text-light);
-}
-
-.logout-link {
-    color: var(--text-light);
-    text-decoration: none;
-}
-
-.logout-link:hover {
-    color: var(--text);
-}
-
-/* Main */
-.main {
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-/* Page Title */
-.page-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 2rem;
-}
-
-.page-title h2 {
-    font-size: 1.25rem;
-    font-weight: 700;
-}
-
-/* Portfolio Cards */
-.portfolio-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 3rem;
-}
-
-.portfolio-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 1.25rem;
-    text-decoration: none;
-    color: inherit;
-    transition: border-color 0.15s;
-}
-
-.portfolio-card:hover {
-    border-color: var(--text);
-}
-
-.portfolio-name {
-    font-size: 0.875rem;
-    color: var(--text-light);
-    margin-bottom: 0.5rem;
-}
-
-.portfolio-value {
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
-}
-
-.portfolio-change {
-    font-size: 0.875rem;
-}
-
-.portfolio-change.positive {
-    color: var(--positive);
-}
-
-.portfolio-change.negative {
-    color: var(--negative);
-}
-
-/* Section Title */
-.section-title {
-    margin-bottom: 1.5rem;
-}
-
-.section-title h2 {
-    font-size: 1.25rem;
-    font-weight: 700;
-}
-
-/* Summary Section */
-.summary-section {
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    gap: 2rem;
-}
-
-@media (max-width: 768px) {
-    .summary-section {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Portfolios List */
-.portfolios-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.portfolio-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    text-decoration: none;
-    color: inherit;
-    transition: all 0.15s;
-}
-
-.portfolio-item:hover {
-    border-color: var(--text);
-}
-
-.portfolio-item.active {
-    border-color: var(--text);
-    background: var(--bg);
-}
-
-.portfolio-item-name {
-    font-weight: 500;
-}
-
-.portfolio-item-value {
-    font-size: 0.875rem;
-    color: var(--text-light);
-}
-
-/* Portfolio Details */
-.portfolio-details {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 2rem;
-}
-
-.details-header {
-    margin-bottom: 1rem;
-}
-
-.details-title {
-    font-size: 0.875rem;
-    color: var(--text-light);
-}
-
-.details-subtitle {
-    font-size: 1.25rem;
-    font-weight: 700;
-}
-
-.details-value {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    letter-spacing: -0.02em;
-}
-
-.details-change {
-    font-size: 1.125rem;
-    margin-bottom: 2rem;
-}
-
-.details-change.positive {
-    color: var(--positive);
-}
-
-.details-change.negative {
-    color: var(--negative);
-}
-
-/* Stats */
-.details-stats {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border);
-}
-
-.stat-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.stat-label {
-    color: var(--text-light);
-}
-
-.stat-value {
-    font-weight: 500;
-}
-
-.stat-value.positive {
-    color: var(--positive);
-}
-
-.stat-value.negative {
-    color: var(--negative);
-}
-
-/* Actions */
-.details-actions {
-    display: flex;
-    gap: 1rem;
-}
-
-/* Buttons */
+/* --- BUTTONS --- */
 .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.75rem 1.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    border-radius: 6px;
-    text-decoration: none;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.15s;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.75rem 1.5rem; border: none; border-radius: 8px;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; font-family: inherit; text-decoration: none;
 }
+.btn-primary { background: var(--primary-gradient); color: white; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
+.btn-secondary { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+.btn-secondary:hover { background: var(--primary); color: white; }
+.btn-danger { background: var(--negative); color: white; }
+.btn-cancel { background: #f3f4f6; color: var(--text); }
+.btn-cancel:hover { background: #e5e7eb; }
+.btn-block { width: 100%; }
 
-.btn-primary {
-    background: var(--text);
-    color: var(--bg);
+/* --- FORMS --- */
+.form-group { margin-bottom: 1.25rem; }
+.form-group label, .form-label { display: block; margin-bottom: 0.5rem; color: #374151; font-weight: 500; font-size: 0.875rem; }
+.form-group input, .form-group textarea, .form-input, .form-select {
+    width: 100%; padding: 0.75rem; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 0.95rem; font-family: inherit;
+    background: white; transition: border-color 0.2s;
 }
+.form-group input:focus, .form-select:focus { outline: none; border-color: var(--primary); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
-.btn-primary:hover {
-    opacity: 0.9;
+/* --- ALERTS & MODALS --- */
+.alert { padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.875rem; }
+.alert-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.alert-warning { background: #fefce8; color: #a16207; border: 1px solid #fef08a; }
+
+.modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.7); display: none; align-items: center; justify-content: center; z-index: 1000;
 }
-
-.btn-secondary {
-    background: var(--bg);
-    border-color: var(--border);
-    color: var(--text);
+.modal-content {
+    background: white; padding: 2rem; border-radius: 12px;
+    max-width: 500px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
+.modal-actions { display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: flex-end; }
 
-.btn-secondary:hover {
-    border-color: var(--text);
+/* --- TABLES & LISTS --- */
+.data-table-container {
+    background: white; border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border); overflow: hidden;
 }
-
-/* Holdings Table */
-.holdings-section {
-    background: var(--bg);
-}
-
-.holdings-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.holdings-table th,
-.holdings-table td {
-    padding: 1rem;
-    text-align: left;
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+    background: #f9fafb; padding: 0.875rem 1rem; text-align: left;
+    font-size: 0.75rem; font-weight: 600; color: var(--text-light); text-transform: uppercase;
     border-bottom: 1px solid var(--border);
 }
+.data-table td { padding: 1rem; font-size: 0.875rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+.data-table tr:hover { background: #f9fafb; }
 
-.holdings-table th {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-light);
-}
+/* Footer tabeli (Totals) - TO ZOSTAŁO PRZYWRÓCONE */
+.totals-row { font-weight: 700; background: #f8fafc; border-top: 2px solid var(--border); }
+.totals-label { text-align: right; color: var(--text-light); }
+.total-value, .total-profit { font-size: 1rem; }
 
-.holdings-table tbody tr:hover {
-    background: var(--card-bg);
-}
-
-.symbol-badge {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    background: var(--text);
-    color: var(--bg);
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.currency {
-    color: var(--text-light);
-    font-size: 0.75rem;
-}
-
-.no-data {
-    color: var(--text-light);
-}
-
-.col-profit.positive {
-    color: var(--positive);
-}
-
-.col-profit.negative {
-    color: var(--negative);
-}
-
-.profit-value {
-    font-weight: 500;
-}
-
-.profit-percent {
-    font-size: 0.75rem;
-    opacity: 0.8;
-}
-
-/* Totals Row */
-.totals-row {
-    font-weight: 600;
-    background: var(--card-bg);
-}
-
-.totals-label {
-    text-align: right;
-}
-
-.total-value,
-.total-profit {
-    font-weight: 700;
-}
-
-/* Table Footer */
 .table-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 0;
-    margin-top: 1rem;
-    border-top: 1px solid var(--border);
+    padding: 1rem; text-align: center; color: var(--text-light);
+    font-size: 0.875rem; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between;
 }
 
-.update-info {
-    font-size: 0.75rem;
-    color: var(--text-light);
-}
+/* --- BADGES & TEXT COLORS (Ważne dla zysków/strat) --- */
+.badge { display: inline-block; padding: 0.25rem 0.625rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
 
-.refresh-link {
-    font-size: 0.75rem;
-    color: var(--text-light);
-    text-decoration: none;
-}
+/* Te klasy obsługują kolory w Dashboardzie i Tabelach */
+.positive { color: var(--positive); }
+.negative { color: var(--negative); }
+.badge.positive { background: #dcfce7; color: #166534; }
+.badge.negative { background: #fee2e2; color: #991b1b; }
 
-.refresh-link:hover {
-    color: var(--text);
-}
-
-/* Portfolio Filter */
-.portfolio-filter select {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg);
-    cursor: pointer;
-}
-
-.portfolio-filter select:focus {
-    outline: none;
-    border-color: var(--text);
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-    color: var(--text-light);
-}
-
-.empty-state p {
-    margin-bottom: 1.5rem;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .header {
-        flex-direction: column;
-        gap: 1rem;
-        padding: 1rem;
-    }
-
-    .main {
-        padding: 1rem;
-    }
-
-    .portfolio-cards {
-        grid-template-columns: 1fr;
-    }
-
-    .details-value {
-        font-size: 1.75rem;
-    }
-
-    .holdings-table {
-        font-size: 0.8125rem;
-    }
-
-    .holdings-table th,
-    .holdings-table td {
-        padding: 0.75rem 0.5rem;
-    }
-}
+/* Helpers */
+.hidden { display: none; }

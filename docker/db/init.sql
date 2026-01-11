@@ -104,12 +104,7 @@ INSERT INTO portfolios (user_id, name, description, is_default) VALUES
 
 -- Przykładowe aktywa
 
--- Przykładowe transakcje (portfolio_id: 1=Główny, 2=Emerytura, 3=Spekulacje)
-
--- Usuń stare dane obligacji
-DELETE FROM transactions WHERE asset_id IN (11, 12);
-DELETE FROM bonds WHERE asset_id IN (11, 12);
-DELETE FROM assets WHERE id IN (11, 12);
+-- Przykładowe transakcje (portfolio_id: 1=IMPORT)
 
 -- Tabela cache kursów walut
 CREATE TABLE IF NOT EXISTS currency_cache (

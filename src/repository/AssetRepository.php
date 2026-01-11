@@ -150,7 +150,8 @@ class AssetRepository extends Repository
             SELECT DISTINCT a.* 
             FROM assets a
             INNER JOIN transactions t ON t.asset_id = a.id
-            WHERE t.user_id = :user_id
+            INNER JOIN portfolios p ON t.portfolio_id = p.id
+            WHERE p.user_id = :user_id
             ORDER BY a.symbol
         ');
         $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
