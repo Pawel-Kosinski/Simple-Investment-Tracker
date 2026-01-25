@@ -14,7 +14,7 @@ class PortfolioController extends AppController {
     }
 
     /**
-     * Tworzy nowy portfel
+     * Standardowa metoda tworzenia (formularz HTML)
      */
     public function create(): void
     {
@@ -22,7 +22,6 @@ class PortfolioController extends AppController {
         
         if (!$this->isPost()) {
             http_response_code(405);
-            echo json_encode(['error' => 'Method not allowed']);
             return;
         }
         
@@ -31,7 +30,6 @@ class PortfolioController extends AppController {
         $description = trim($_POST['description'] ?? '');
         $isDefault = isset($_POST['is_default']) && $_POST['is_default'] === '1';
         
-        // Walidacja
         if (empty($name)) {
             $_SESSION['error'] = 'Nazwa portfela jest wymagana';
             $this->redirect('/dashboard');
@@ -39,12 +37,11 @@ class PortfolioController extends AppController {
         }
         
         if (strlen($name) > 100) {
-            $_SESSION['error'] = 'Nazwa portfela jest za długa (max 100 znaków)';
+            $_SESSION['error'] = 'Nazwa portfela jest za długa';
             $this->redirect('/dashboard');
             return;
         }
         
-        // Jeśli to pierwszy portfel użytkownika, ustaw jako domyślny
         $portfolioCount = $this->portfolioRepository->countByUserId($userId);
         if ($portfolioCount === 0) {
             $isDefault = true;
@@ -52,18 +49,17 @@ class PortfolioController extends AppController {
         
         try {
             $portfolio = new Portfolio($userId, $name, $description, $isDefault);
-            $portfolioId = $this->portfolioRepository->create($portfolio);
-            
-            $_SESSION['success'] = 'Portfel "' . htmlspecialchars($name) . '" został utworzony!';
-            $this->redirect('/dashboard');
+            $this->portfolioRepository->create($portfolio);
+            $_SESSION['success'] = 'Portfel został utworzony!';
         } catch (Exception $e) {
             $_SESSION['error'] = 'Błąd podczas tworzenia portfela';
-            $this->redirect('/dashboard');
         }
+        
+        $this->redirect('/dashboard');
     }
     
     /**
-     * Usuwa portfel
+     * Standardowa metoda usuwania (formularz HTML)
      */
     public function delete(): void
     {
@@ -71,7 +67,6 @@ class PortfolioController extends AppController {
         
         if (!$this->isPost()) {
             http_response_code(405);
-            echo json_encode(['error' => 'Method not allowed']);
             return;
         }
         
@@ -79,19 +74,17 @@ class PortfolioController extends AppController {
         $portfolioId = (int) ($_POST['portfolio_id'] ?? 0);
         
         if (!$portfolioId) {
-            $_SESSION['error'] = 'Nieprawidłowe ID portfela';
             $this->redirect('/dashboard');
             return;
         }
         
-        // Sprawdź czy portfel należy do użytkownika
         if (!$this->portfolioRepository->belongsToUser($portfolioId, $userId)) {
-            $_SESSION['error'] = 'Nie masz uprawnień do usunięcia tego portfela';
+            $_SESSION['error'] = 'Brak uprawnień';
             $this->redirect('/dashboard');
             return;
         }
         
-        // Sprawdź czy to nie ostatni portfel
+        // Zabezpieczenie przed usunięciem ostatniego portfela
         $portfolioCount = $this->portfolioRepository->countByUserId($userId);
         if ($portfolioCount <= 1) {
             $_SESSION['error'] = 'Nie możesz usunąć ostatniego portfela';
@@ -100,6 +93,8 @@ class PortfolioController extends AppController {
         }
         
         try {
+            // Czyścimy zależności i usuwamy
+            $this->deletePortfolioDependencies($portfolioId);
             $this->portfolioRepository->delete($portfolioId, $userId);
             $_SESSION['success'] = 'Portfel został usunięty';
         } catch (Exception $e) {
@@ -113,9 +108,6 @@ class PortfolioController extends AppController {
     // FETCH API ENDPOINTS
     // ============================================
 
-    /**
-     * API: Tworzy nowy portfel (zwraca JSON)
-     */
     public function createApi(): void
     {
         header('Content-Type: application/json');
@@ -137,18 +129,11 @@ class PortfolioController extends AppController {
         $description = trim($_POST['description'] ?? '');
         $isDefault = isset($_POST['is_default']) && $_POST['is_default'] === '1';
         
-        // Walidacja
         if (empty($name)) {
             echo json_encode(['success' => false, 'error' => 'Nazwa portfela jest wymagana']);
             return;
         }
         
-        if (strlen($name) > 100) {
-            echo json_encode(['success' => false, 'error' => 'Nazwa portfela jest za długa (max 100 znaków)']);
-            return;
-        }
-        
-        // Pierwszy portfel = domyślny
         $portfolioCount = $this->portfolioRepository->countByUserId($userId);
         if ($portfolioCount === 0) {
             $isDefault = true;
@@ -160,17 +145,14 @@ class PortfolioController extends AppController {
             
             echo json_encode([
                 'success' => true,
-                'message' => 'Portfel "' . htmlspecialchars($name) . '" został utworzony!',
+                'message' => 'Portfel utworzony',
                 'portfolio_id' => $portfolioId
             ]);
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'error' => 'Błąd podczas tworzenia portfela']);
+            echo json_encode(['success' => false, 'error' => 'Błąd bazy danych']);
         }
     }
 
-    /**
-     * API: Usuwa portfel (zwraca JSON)
-     */
     public function deleteApi(): void
     {
         header('Content-Type: application/json');
@@ -191,12 +173,12 @@ class PortfolioController extends AppController {
         $portfolioId = (int) ($_POST['portfolio_id'] ?? 0);
         
         if (!$portfolioId) {
-            echo json_encode(['success' => false, 'error' => 'Nieprawidłowe ID portfela']);
+            echo json_encode(['success' => false, 'error' => 'Nieprawidłowe ID']);
             return;
         }
         
         if (!$this->portfolioRepository->belongsToUser($portfolioId, $userId)) {
-            echo json_encode(['success' => false, 'error' => 'Brak uprawnień do tego portfela']);
+            echo json_encode(['success' => false, 'error' => 'Brak uprawnień']);
             return;
         }
         
@@ -207,10 +189,28 @@ class PortfolioController extends AppController {
         }
         
         try {
+            // Najpierw usuwamy aktywa i transakcje
+            $this->deletePortfolioDependencies($portfolioId);
+            
+            // Potem usuwamy sam portfel
             $this->portfolioRepository->delete($portfolioId, $userId);
+            
             echo json_encode(['success' => true, 'message' => 'Portfel został usunięty']);
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'error' => 'Błąd podczas usuwania portfela']);
+            echo json_encode(['success' => false, 'error' => 'Błąd podczas usuwania: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Pomocnicza metoda do usuwania kaskadowego
+     */
+    private function deletePortfolioDependencies(int $portfolioId): void {
+        $db = Database::getInstance()->connect();
+        try {
+            $stmt = $db->prepare('DELETE FROM transactions WHERE portfolio_id = :pid');
+            $stmt->execute(['pid' => $portfolioId]);
+        } catch (PDOException $e) {
+            throw new Exception("Błąd struktury bazy: " . $e->getMessage());
         }
     }
 }

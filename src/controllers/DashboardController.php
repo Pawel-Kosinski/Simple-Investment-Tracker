@@ -37,25 +37,25 @@ class DashboardController extends AppController {
             $activePortfolioId = null;
         }
         
-        // Pobierz dane dla każdego portfela (do kart)
+        // SZYBKIE ŁADOWANIE: używamy TYLKO cache (bez API calls)
         $portfolioData = [];
         foreach ($portfolios as $portfolio) {
             $pId = $portfolio->getId();
             $pHoldings = $this->transactionRepository->getHoldingsSummary($pId);
-            $pPrices = $this->priceService->getPricesForHoldings($pHoldings);
+            // Cache only - natychmiastowe
+            $pPrices = $this->priceService->getPricesForHoldingsCacheOnly($pHoldings);
             $calculated = $this->priceService->calculatePortfolioValue($pHoldings, $pPrices);
             $portfolioData[$pId] = $calculated['summary'];
         }
 
-        // Pobierz dane dla wybranego portfela lub wszystkich
+        // Dane dla wybranego portfela lub wszystkich (też z cache)
         if ($activePortfolioId) {
             $holdings = $this->transactionRepository->getHoldingsSummary($activePortfolioId);
         } else {
             $holdings = $this->transactionRepository->getHoldingsSummaryByUserId($userId);
         }
 
-        // Pobierz aktualne ceny
-        $prices = $this->priceService->getPricesForHoldings($holdings);
+        $prices = $this->priceService->getPricesForHoldingsCacheOnly($holdings);
         $currentPortfolioData = $this->priceService->calculatePortfolioValue($holdings, $prices);
 
         $this->render('dashboard', [
@@ -65,6 +65,40 @@ class DashboardController extends AppController {
             'holdings' => $currentPortfolioData['holdings'],
             'portfolioSummary' => $currentPortfolioData['summary'],
             'userName' => $_SESSION['user_name'] ?? 'Użytkownik'
+        ]);
+    }
+
+    /**
+     * API: Pobiera dane wszystkich portfeli ze świeżymi cenami (do lazy loading)
+     */
+    public function getPortfolioDataApi(): void
+    {
+        $this->requireAuth();
+        header('Content-Type: application/json');
+
+        $userId = $this->getCurrentUserId();
+        $portfolios = $this->portfolioRepository->findByUserId($userId);
+        
+        $portfolioData = [];
+        foreach ($portfolios as $portfolio) {
+            $pId = $portfolio->getId();
+            $pHoldings = $this->transactionRepository->getHoldingsSummary($pId);
+            // ŚWIEŻE DANE z API
+            $pPrices = $this->priceService->getPricesForHoldings($pHoldings);
+            $calculated = $this->priceService->calculatePortfolioValue($pHoldings, $pPrices);
+            $portfolioData[$pId] = $calculated['summary'];
+        }
+        
+        // Ogólne podsumowanie
+        $allHoldings = $this->transactionRepository->getHoldingsSummaryByUserId($userId);
+        $allPrices = $this->priceService->getPricesForHoldings($allHoldings);
+        $totalData = $this->priceService->calculatePortfolioValue($allHoldings, $allPrices);
+
+        echo json_encode([
+            'success' => true,
+            'portfolios' => $portfolioData,
+            'total' => $totalData['summary'],
+            'updated_at' => date('H:i:s')
         ]);
     }
 

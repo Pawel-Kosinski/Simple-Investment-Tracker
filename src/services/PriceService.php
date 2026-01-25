@@ -17,27 +17,33 @@ class PriceService {
     }
     
     /**
-     * Pobiera aktualną cenę dla pojedynczego symbolu
+     * SZYBKI START: Pobiera ceny z cache niezależnie od ich wieku.
+     * Używane przy pierwszym renderowaniu strony HTML.
      */
-    public function getCurrentPrice(string $yahooSymbol): ?array {
-        // Sprawdź cache
-        $cached = $this->getFromCache($yahooSymbol);
-        if ($cached !== null) {
-            return $cached;
+    public function getPricesFromCacheOnly(array $yahooSymbols): array {
+        $prices = [];
+        
+        foreach ($yahooSymbols as $symbol) {
+            if (empty($symbol)) continue;
+            
+            // Pobieramy z cache (nawet stary), żeby strona załadowała się natychmiast
+            $cached = $this->getFromCache($symbol, true); 
+            if ($cached !== null) {
+                $prices[$symbol] = $cached;
+            }
         }
         
-        // Pobierz z API
-        $price = $this->fetchFromYahoo($yahooSymbol);
-        
-        if ($price !== null) {
-            $this->saveToCache($yahooSymbol, $price['price'], $price['currency']);
-        }
-        
-        return $price;
+        return $prices;
+    }
+    
+    public function getPricesForHoldingsCacheOnly(array $holdings): array {
+        $symbols = array_filter(array_column($holdings, 'yahoo_symbol'));
+        return $this->getPricesFromCacheOnly($symbols);
     }
     
     /**
-     * Pobiera ceny dla wielu symboli naraz - zawsze świeże dane (dla daily change)
+     * SMART FETCH: Pobiera ceny. Jeśli cache jest świeży (< 15 min), zwraca cache.
+     * Jeśli cache wygasł, pyta Yahoo i aktualizuje bazę.
      */
     public function getPrices(array $yahooSymbols): array {
         $prices = [];
@@ -45,18 +51,25 @@ class PriceService {
         foreach ($yahooSymbols as $symbol) {
             if (empty($symbol)) continue;
             
-            // Zawsze pobieraj świeże dane z API (dla change/daily change)
-            $price = $this->fetchFromYahoo($symbol);
-            if ($price !== null) {
-                $prices[$symbol] = $price;
-                $this->saveToCache($symbol, $price['price'], $price['currency']);
+            // 1. Sprawdź czy mamy świeży cache (false = sprawdź datę)
+            $cached = $this->getFromCache($symbol, false);
+            
+            if ($cached !== null) {
+                // Mamy świeże dane, nie pytamy API
+                $prices[$symbol] = $cached;
             } else {
-                // Fallback do cache jeśli API nie działa
-                $cached = $this->getFromCache($symbol, true);
-                if ($cached !== null) {
-                    $cached['change'] = 0;
-                    $cached['change_percent'] = 0;
-                    $prices[$symbol] = $cached;
+                // 2. Cache stary lub brak - pytamy Yahoo
+                $priceData = $this->fetchFromYahoo($symbol);
+                
+                if ($priceData !== null) {
+                    $prices[$symbol] = $priceData;
+                    $this->saveToCache($symbol, $priceData);
+                } else {
+                    // 3. API nie odpowiada? Weź stary cache jako fallback
+                    $oldCache = $this->getFromCache($symbol, true);
+                    if ($oldCache !== null) {
+                        $prices[$symbol] = $oldCache;
+                    }
                 }
             }
         }
@@ -64,34 +77,36 @@ class PriceService {
         return $prices;
     }
     
-    /**
-     * Pobiera ceny dla wszystkich aktywów użytkownika
-     */
     public function getPricesForHoldings(array $holdings): array {
         $symbols = array_filter(array_column($holdings, 'yahoo_symbol'));
         return $this->getPrices($symbols);
     }
     
+    public function getCurrentPrice(string $yahooSymbol): ?array {
+        $result = $this->getPrices([$yahooSymbol]);
+        return $result[$yahooSymbol] ?? null;
+    }
+
     /**
      * Pobiera dane z Yahoo Finance API
      */
     private function fetchFromYahoo(string $symbol): ?array {
-        $url = self::YAHOO_API_URL . urlencode($symbol) . '?interval=1d&range=1d';
+        // Używamy &range=1d, aby API zwróciło poprawne dane o poprzednim zamknięciu
+        $url = self::YAHOO_API_URL . urlencode($symbol) . '?interval=1d&range=2d';
         
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT => 10,
-            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            CURLOPT_TIMEOUT => 5, // Krótki timeout, żeby nie blokować strony
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; InvestmentTracker/1.0)',
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
         ]);
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
         curl_close($ch);
         
         if ($response === false || $httpCode !== 200) {
@@ -100,14 +115,14 @@ class PriceService {
         
         $data = json_decode($response, true);
         
-        if (!isset($data['chart']['result'][0])) {
+        if (!isset($data['chart']['result'][0]['meta'])) {
             return null;
         }
         
-        $result = $data['chart']['result'][0];
-        $meta = $result['meta'] ?? [];
+        $meta = $data['chart']['result'][0]['meta'];
         
         $price = $meta['regularMarketPrice'] ?? null;
+        // Pobieramy previousClose z meta danych
         $previousClose = $meta['previousClose'] ?? $meta['chartPreviousClose'] ?? null;
         $currency = $meta['currency'] ?? 'USD';
         
@@ -115,31 +130,39 @@ class PriceService {
             return null;
         }
         
-        $change = $previousClose ? ($price - $previousClose) : 0;
-        $changePercent = $previousClose ? (($change / $previousClose) * 100) : 0;
+        // Obliczamy zmianę
+        $change = 0;
+        $changePercent = 0;
+        
+        if ($previousClose && $previousClose > 0) {
+            $change = $price - $previousClose;
+            $changePercent = ($change / $previousClose) * 100;
+        }
         
         return [
             'symbol' => $symbol,
             'price' => (float) $price,
-            'previous_close' => (float) $previousClose,
+            'currency' => $currency,
             'change' => (float) $change,
             'change_percent' => (float) $changePercent,
-            'currency' => $currency,
-            'fetched_at' => date('Y-m-d H:i:s')
+            'previous_close' => (float) $previousClose,
+            'fetched_at' => date('Y-m-d H:i:s'),
+            'from_cache' => false
         ];
     }
     
     /**
      * Pobiera cenę z cache
      */
-    private function getFromCache(string $yahooSymbol, bool $anyAge = false): ?array {
+    private function getFromCache(string $yahooSymbol, bool $ignoreTime = false): ?array {
         $sql = '
             SELECT pc.*, a.yahoo_symbol 
             FROM price_cache pc
             INNER JOIN assets a ON pc.asset_id = a.id
             WHERE a.yahoo_symbol = :symbol';
         
-        if (!$anyAge) {
+        if (!$ignoreTime) {
+            // Sprawdza czy cache jest młodszy niż 15 min (CACHE_DURATION)
             $sql .= ' AND pc.fetched_at > NOW() - INTERVAL \'' . self::CACHE_DURATION . ' seconds\'';
         }
         
@@ -158,69 +181,19 @@ class PriceService {
             'symbol' => $yahooSymbol,
             'price' => (float) $row['price'],
             'currency' => $row['currency'],
+            // Teraz pobieramy też zapisane zmiany z bazy
+            'change' => (float) ($row['change_amount'] ?? 0),
+            'change_percent' => (float) ($row['change_percent'] ?? 0),
+            'previous_close' => (float) ($row['previous_close'] ?? 0),
             'fetched_at' => $row['fetched_at'],
             'from_cache' => true
         ];
     }
     
     /**
-     * Oblicza narosłe odsetki dla obligacji
+     * Zapisuje cenę ORAZ zmiany dzienne do cache
      */
-    private function calculateAccruedInterest(array $holding): float
-    {
-        // Jeśli brak danych o obligacji, zwróć 0
-        if (empty($holding['first_purchase_date']) || 
-            (empty($holding['first_year_rate']) && empty($holding['interest_rate']))) {
-            return 0.0;
-        }
-        
-        $purchaseDate = new DateTime($holding['first_purchase_date']);
-        $today = new DateTime();
-        $daysHeld = $purchaseDate->diff($today)->days;
-        
-        // Obligacje stałoprocentowe (OTS, TOS)
-        if (!empty($holding['interest_rate'])) {
-            $annualRate = $holding['interest_rate'];
-            $accruedInterest = ($daysHeld / 365.0) * $annualRate;
-            return round($accruedInterest, 2);
-        }
-        
-        // Obligacje ze zmiennym/indeksowanym oprocentowaniem (COI, EDO, ROR, DOR, ROS, ROD)
-        if (!empty($holding['first_year_rate'])) {
-            // Dla uproszczenia: pierwszy rok używamy first_year_rate
-            // (właściwa implementacja wymagałaby danych o inflacji/stopie NBP)
-            $firstYearRate = $holding['first_year_rate'];
-            
-            // Jeśli minęło mniej niż rok, liczymy proporcjonalnie
-            if ($daysHeld <= 365) {
-                $accruedInterest = ($daysHeld / 365.0) * $firstYearRate;
-            } else {
-                // Po pierwszym roku: 
-                // Uproszczenie - używamy first_year_rate + marża jako szacunek
-                // (w rzeczywistości trzeba by pobrać dane o inflacji/NBP)
-                $yearsHeld = $daysHeld / 365.0;
-                $margin = $holding['interest_margin'] ?? 0;
-                $estimatedRate = $firstYearRate; // uproszczenie
-                
-                if ($margin > 0) {
-                    // Dla kolejnych lat: zakładamy że stopa to średnio first_year_rate
-                    // (to uproszczenie - w rzeczywistości potrzebne byłyby dane o inflacji)
-                    $accruedInterest = $yearsHeld * $estimatedRate;
-                } else {
-                    $accruedInterest = $yearsHeld * $firstYearRate;
-                }
-            }
-            
-            return round($accruedInterest, 2);
-        }
-        
-        return 0.0;
-    }
-    
-    /**
-     * Zapisuje cenę do cache
-     */
-    private function saveToCache(string $yahooSymbol, float $price, string $currency): void {
+    private function saveToCache(string $yahooSymbol, array $data): void {
         // Znajdź asset_id
         $stmt = $this->database->prepare('SELECT id FROM assets WHERE yahoo_symbol = :symbol');
         $stmt->execute(['symbol' => $yahooSymbol]);
@@ -230,32 +203,78 @@ class PriceService {
             return;
         }
         
-        // Usuń stare wpisy cache dla tego aktywa
+        // Usuń stare wpisy
         $stmt = $this->database->prepare('DELETE FROM price_cache WHERE asset_id = :asset_id');
         $stmt->execute(['asset_id' => $assetId]);
         
-        // Dodaj nowy wpis
+        // Zapisz nowe dane (rozbudowane o change)
         $stmt = $this->database->prepare('
-            INSERT INTO price_cache (asset_id, price, currency, fetched_at)
-            VALUES (:asset_id, :price, :currency, NOW())
+            INSERT INTO price_cache (
+                asset_id, price, currency, 
+                change_amount, change_percent, previous_close, 
+                fetched_at
+            )
+            VALUES (
+                :asset_id, :price, :currency, 
+                :change_amount, :change_percent, :previous_close, 
+                NOW()
+            )
         ');
+        
         $stmt->execute([
             'asset_id' => $assetId,
-            'price' => $price,
-            'currency' => $currency
+            'price' => $data['price'],
+            'currency' => $data['currency'],
+            'change_amount' => $data['change'] ?? 0,
+            'change_percent' => $data['change_percent'] ?? 0,
+            'previous_close' => $data['previous_close'] ?? 0
         ]);
     }
     
-    /**
-     * Czyści cały cache
-     */
     public function clearCache(): void {
         $this->database->exec('DELETE FROM price_cache');
     }
     
-    /**
-     * Oblicza wartość portfela na podstawie aktualnych cen
-     */
+    // ... tutaj metoda calculatePortfolioValue (bez zmian) ...
+    // ... metoda calculateAccruedInterest (bez zmian) ...
+    
+    public function calculateAccruedInterest(array $holding): float
+    {
+        // ... (Twoja istniejąca logika obligacji) ...
+        if (empty($holding['first_purchase_date']) || 
+            (empty($holding['first_year_rate']) && empty($holding['interest_rate']))) {
+            return 0.0;
+        }
+        
+        $purchaseDate = new DateTime($holding['first_purchase_date']);
+        $today = new DateTime();
+        $daysHeld = $purchaseDate->diff($today)->days;
+        
+        if (!empty($holding['interest_rate'])) {
+            $annualRate = $holding['interest_rate'];
+            $accruedInterest = ($daysHeld / 365.0) * $annualRate;
+            return round($accruedInterest, 2);
+        }
+        
+        if (!empty($holding['first_year_rate'])) {
+            $firstYearRate = $holding['first_year_rate'];
+            if ($daysHeld <= 365) {
+                $accruedInterest = ($daysHeld / 365.0) * $firstYearRate;
+            } else {
+                $yearsHeld = $daysHeld / 365.0;
+                $margin = $holding['interest_margin'] ?? 0;
+                $estimatedRate = $firstYearRate;
+                if ($margin > 0) {
+                    $accruedInterest = $yearsHeld * $estimatedRate;
+                } else {
+                    $accruedInterest = $yearsHeld * $firstYearRate;
+                }
+            }
+            return round($accruedInterest, 2);
+        }
+        return 0.0;
+    }
+
     public function calculatePortfolioValue(array $holdings, array $prices): array {
         $totalValue = 0;
         $totalCost = 0;
@@ -270,54 +289,37 @@ class PriceService {
             $cost = (float) ($holding['total_cost'] ?? 0);
             $revenue = (float) ($holding['total_revenue'] ?? 0);
             
-            // Pomiń jeśli brak ilości
-            if ($quantity <= 0) {
-                continue;
-            }
+            if ($quantity <= 0) continue;
             
-            // Oblicz średnią cenę zakupu
             $totalBought = (float) ($holding['total_bought'] ?? 0);
             $avgBuyPrice = $totalBought > 0 ? $cost / $totalBought : 0;
             $investedValue = $quantity * $avgBuyPrice;
             
             $currentPrice = null;
-            $currentValue = null;
-            $currentProfit = null;
-            $holdingTotalProfit = null;
-            $profitPercent = null;
             $dailyChange = 0;
             $priceSource = 'none';
             
-            // Dla obligacji: wartość nominalna + narosłe odsetki
+            // Obligacje
             if (isset($holding['asset_type']) && $holding['asset_type'] === 'bond') {
                 $accruedInterest = $this->calculateAccruedInterest($holding);
-                $currentPrice = 100.00 + $accruedInterest; // wartość nominalna + narosłe odsetki
+                $currentPrice = 100.00 + $accruedInterest;
                 $priceSource = 'bond_accrued';
             }
-            // Dla akcji i ETF: próba pobrania ceny z API
+            // Akcje/ETF z ceną
             elseif ($yahooSymbol && isset($prices[$yahooSymbol])) {
                 $priceData = $prices[$yahooSymbol];
                 $currentPrice = $priceData['price'];
+                // TERAZ: daily change pochodzi poprawnie z cache lub API
                 $dailyChange = ($priceData['change'] ?? 0) * $quantity;
-                $priceSource = 'api';
+                $priceSource = $priceData['from_cache'] ? 'cache' : 'api';
             }
             
-            // Próba 2: stary cache
-            if ($currentPrice === null && $yahooSymbol) {
-                $oldCache = $this->getFromCache($yahooSymbol, true);
-                if ($oldCache) {
-                    $currentPrice = $oldCache['price'];
-                    $priceSource = 'old_cache';
-                }
-            }
-            
-            // Próba 3: cena zakupu jako fallback
+            // Fallback: stara cena zakupu
             if ($currentPrice === null) {
                 $currentPrice = $avgBuyPrice;
                 $priceSource = 'purchase_price';
             }
             
-            // Oblicz wartości
             $currentValue = $quantity * $currentPrice;
             $currentProfit = $currentValue - $investedValue;
             $holdingTotalProfit = $currentValue + $revenue - $cost;
@@ -337,7 +339,6 @@ class PriceService {
             $holdingTotalProfitPLN = $holdingTotalProfit * $exchangeRate;
             $dailyChangePLN = $dailyChange * $exchangeRate;
             
-            // Sumuj w PLN
             $totalValue += $currentValuePLN;
             $investedTotal += $investedValuePLN;
             $totalCost += $cost * $exchangeRate;
@@ -347,34 +348,21 @@ class PriceService {
             $holdingsWithPrices[] = array_merge($holding, [
                 'quantity' => $quantity,
                 'avg_buy_price' => $avgBuyPrice,
-                'invested_value' => $investedValue,
                 'current_price' => $currentPrice,
-                'current_value' => $currentValue,
-                'current_profit' => $currentProfit,
-                'total_profit' => $holdingTotalProfit,
-                'profit_percent' => $profitPercent,
-                'daily_change' => $dailyChange,
-                'price_source' => $priceSource,
-                // Dodane: wartości w PLN
-                'currency' => $currency,
-                'exchange_rate' => $exchangeRate,
                 'current_value_pln' => $currentValuePLN,
-                'invested_value_pln' => $investedValuePLN,
                 'current_profit_pln' => $currentProfitPLN,
                 'total_profit_pln' => $holdingTotalProfitPLN,
+                'profit_percent' => $profitPercent,
                 'daily_change_pln' => $dailyChangePLN,
-                'price_data' => $prices[$yahooSymbol] ?? null
+                'price_source' => $priceSource,
+                'currency' => $currency
             ]);
         }
         
-        // Zysk bieżący = obecna wartość posiadanych akcji - ich koszt zakupu
         $currentProfit = $totalValue - $investedTotal;
-
-        // Zysk całkowity = obecna wartość + przychody ze sprzedaży - całkowity koszt zakupów  
         $totalProfit = $totalValue + $totalRevenue - $totalCost;
         $totalProfitPercent = $totalCost > 0 ? ($totalProfit / $totalCost) * 100 : 0;
         
-        // Zmiana dzienna w procentach
         $previousTotalValue = $totalValue - $totalDailyChange;
         $dailyChangePercent = $previousTotalValue > 0 ? ($totalDailyChange / $previousTotalValue) * 100 : 0;
         

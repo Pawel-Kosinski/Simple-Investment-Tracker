@@ -200,3 +200,127 @@ body {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+/* =============================================
+   PORTFOLIO CARDS
+   ============================================= */
+.portfolio-card {
+    display: block;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    cursor: pointer;
+}
+
+.portfolio-card:hover {
+    border-color: #9ca3af;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+.portfolio-header {
+    margin-bottom: 0.75rem;
+}
+
+.portfolio-name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+}
+
+.portfolio-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.portfolio-badges {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    align-items: center;
+}
+
+.portfolio-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.portfolio-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.portfolio-stat-label {
+    color: var(--text-light);
+}
+
+.portfolio-stat-value {
+    font-weight: 600;
+}
+
+/* Subtelny przycisk usuń w rogu */
+.portfolio-delete-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #9ca3af;
+    cursor: pointer;
+    border-radius: 4px;
+    opacity: 0;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.portfolio-card:hover .portfolio-delete-btn {
+    opacity: 1;
+}
+
+.portfolio-delete-btn:hover {
+    background: #fee2e2;
+    color: var(--negative);
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+}
+
+/* Refresh indicator */
+.refresh-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    padding: 0.25rem 0.75rem;
+    background: #f3f4f6;
+    border-radius: 20px;
+}
+
+.refresh-indicator .spinner {
+    width: 12px;
+    height: 12px;
+    border-width: 2px;
+    border-color: var(--text-light);
+    border-top-color: var(--primary);
+}

@@ -13,6 +13,7 @@
 const API_ENDPOINTS = {
     PORTFOLIO_CREATE: '/api/portfolio/create',
     PORTFOLIO_DELETE: '/api/portfolio/delete',
+    PORTFOLIO_DATA: '/api/portfolio/data',
     ASSET_DELETE: '/api/assets/delete',
     TRANSACTION_DELETE: '/api/transactions/delete'
 };
@@ -380,3 +381,227 @@ window.confirmDelete = function(id, symbol) {
         confirmDeleteTransaction(id);
     }
 };
+
+// ============================================
+// LAZY LOADING CEN - Szybkie ładowanie strony
+// ============================================
+
+/**
+ * Formatuje liczbę jako walutę PLN
+ */
+function formatCurrency(value) {
+    return new Intl.NumberFormat('pl-PL', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(value);
+}
+
+/**
+ * Formatuje procent
+ */
+function formatPercent(value) {
+    const sign = value >= 0 ? '+' : '';
+    return sign + value.toFixed(1) + ' %';
+}
+
+/**
+ * Aktualizuje kartę portfela danymi ze świeżych cen
+ */
+function updatePortfolioCard(portfolioId, data) {
+    const card = document.querySelector(`[data-portfolio-id="${portfolioId}"]`);
+    if (!card) return;
+    
+    // Aktualizuj wartość
+    const valueEl = card.querySelector('.portfolio-value');
+    if (valueEl) {
+        valueEl.textContent = formatCurrency(data.total_value) + ' PLN';
+    }
+    
+    // Aktualizuj badge zysku
+    const profitBadge = card.querySelector('.profit-badge');
+    if (profitBadge) {
+        const isPositive = data.total_profit_percent >= 0;
+        profitBadge.className = `stat-badge-sm ${isPositive ? 'positive' : 'negative'} profit-badge`;
+        profitBadge.textContent = formatPercent(data.total_profit_percent);
+    }
+    
+    // Aktualizuj kwotę zysku
+    const profitAmount = card.querySelector('.profit-amount');
+    if (profitAmount) {
+        const isPositive = data.total_profit >= 0;
+        profitAmount.className = `${isPositive ? 'positive' : 'negative'} profit-amount`;
+        profitAmount.textContent = (data.total_profit >= 0 ? '+' : '') + formatCurrency(data.total_profit) + ' PLN';
+    }
+    
+    // Aktualizuj statystyki w kartach
+    const dailyChangePercent = card.querySelector('.daily-change-percent');
+    if (dailyChangePercent) {
+        const isPositive = data.daily_change_percent >= 0;
+        dailyChangePercent.className = `portfolio-stat-value stat-badge-sm ${isPositive ? 'positive' : 'negative'} daily-change-percent`;
+        dailyChangePercent.textContent = (data.daily_change_percent >= 0 ? '+' : '') + data.daily_change_percent.toFixed(2) + ' %';
+    }
+    
+    const dailyChange = card.querySelector('.daily-change');
+    if (dailyChange) {
+        const isPositive = data.daily_change >= 0;
+        dailyChange.className = `portfolio-stat-value stat-badge-sm ${isPositive ? 'positive' : 'negative'} daily-change`;
+        dailyChange.textContent = (data.daily_change >= 0 ? '+' : '') + formatCurrency(data.daily_change) + ' PLN';
+    }
+    
+    // Usuń klasę loading
+    card.classList.remove('loading');
+}
+
+/**
+ * Aktualizuje podsumowanie globalne
+ */
+function updateGlobalStats(data) {
+    // Total value
+    const totalValueEl = document.querySelector('[data-stat="total-value"]');
+    if (totalValueEl) {
+        totalValueEl.textContent = formatCurrency(data.total_value) + ' PLN';
+    }
+    
+    // Total profit
+    const totalProfitEl = document.querySelector('[data-stat="total-profit"]');
+    if (totalProfitEl) {
+        const isPositive = data.total_profit >= 0;
+        totalProfitEl.className = `stat-value ${isPositive ? 'positive' : 'negative'}`;
+        totalProfitEl.textContent = (data.total_profit >= 0 ? '+' : '') + formatCurrency(data.total_profit) + ' PLN';
+    }
+    
+    // Daily change
+    const dailyChangeEl = document.querySelector('[data-stat="daily-change"]');
+    if (dailyChangeEl) {
+        const isPositive = data.daily_change >= 0;
+        dailyChangeEl.className = `stat-value ${isPositive ? 'positive' : 'negative'}`;
+        dailyChangeEl.textContent = (data.daily_change >= 0 ? '+' : '') + formatCurrency(data.daily_change) + ' PLN';
+    }
+}
+
+/**
+ * Pobiera świeże ceny w tle i aktualizuje UI
+ */
+async function refreshPricesInBackground() {
+    // Pokaż indicator ładowania
+    const refreshIndicator = document.getElementById('refreshIndicator');
+    if (refreshIndicator) {
+        refreshIndicator.style.display = 'inline-flex';
+    }
+    
+    try {
+        const response = await fetch(API_ENDPOINTS.PORTFOLIO_DATA);
+        const result = await response.json();
+        
+        if (result.success) {
+            // Aktualizuj każdą kartę portfela
+            for (const [portfolioId, data] of Object.entries(result.portfolios)) {
+                updatePortfolioCard(portfolioId, data);
+            }
+            
+            // Aktualizuj globalne statystyki
+            if (result.total) {
+                updateGlobalStats(result.total);
+            }
+            
+            // Pokaż czas aktualizacji
+            const updateTimeEl = document.getElementById('lastUpdateTime');
+            if (updateTimeEl) {
+                updateTimeEl.textContent = result.updated_at;
+            }
+        }
+    } catch (error) {
+        console.error('Błąd odświeżania cen:', error);
+    } finally {
+        if (refreshIndicator) {
+            refreshIndicator.style.display = 'none';
+        }
+    }
+}
+
+/**
+ * Pokazuje modal potwierdzenia usunięcia portfela
+ */
+let pendingPortfolioDelete = null;
+
+function confirmDeletePortfolio(portfolioId, portfolioName) {
+    pendingPortfolioDelete = portfolioId;
+    
+    const modal = document.getElementById('deletePortfolioModal');
+    const nameEl = document.getElementById('deletePortfolioName');
+    
+    if (modal && nameEl) {
+        nameEl.textContent = portfolioName;
+        modal.style.display = 'flex';
+    } else {
+        if (confirm(`Czy na pewno chcesz usunąć portfel "${portfolioName}"?\nWszystkie aktywa i transakcje zostaną usunięte!`)) {
+            executeDeletePortfolio(portfolioId);
+        }
+    }
+}
+
+/**
+ * Wykonuje usunięcie portfela
+ */
+async function executeDeletePortfolio(portfolioId = null) {
+    const id = portfolioId || pendingPortfolioDelete;
+    if (!id) return;
+    
+    closeModal('deletePortfolioModal');
+    
+    try {
+        const result = await postJSON(API_ENDPOINTS.PORTFOLIO_DELETE, { portfolio_id: id });
+        
+        if (result.success) {
+            showToast(result.message || 'Portfel usunięty', 'success');
+            
+            // Animacja usunięcia karty
+            const card = document.querySelector(`[data-portfolio-id="${id}"]`);
+            if (card) {
+                card.style.transition = 'all 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    card.remove();
+                    // Jeśli nie ma już portfeli - przeładuj
+                    const remaining = document.querySelectorAll('[data-portfolio-id]');
+                    if (remaining.length === 0) {
+                        location.reload();
+                    }
+                }, 300);
+            } else {
+                setTimeout(() => location.reload(), 1000);
+            }
+        } else {
+            showToast(result.error || 'Błąd podczas usuwania', 'error');
+        }
+    } catch (error) {
+        console.error('Fetch error:', error);
+        showToast('Błąd połączenia z serwerem', 'error');
+    }
+    
+    pendingPortfolioDelete = null;
+}
+
+// ============================================
+// AUTO-REFRESH na Dashboard
+// ============================================
+
+// Odśwież ceny automatycznie po załadowaniu strony (tylko na dashboard)
+document.addEventListener('DOMContentLoaded', function() {
+    // Sprawdź czy jesteśmy na dashboardzie
+    const portfolioCards = document.querySelectorAll('[data-portfolio-id]');
+    
+    if (portfolioCards.length > 0) {
+        // Odśwież ceny po 500ms (daj stronie się załadować)
+        setTimeout(refreshPricesInBackground, 500);
+        
+        // Auto-refresh co 60 sekund
+        setInterval(refreshPricesInBackground, 60000);
+    }
+});
+
+// Eksportuj nowe funkcje
+window.refreshPricesInBackground = refreshPricesInBackground;
+window.confirmDeletePortfolio = confirmDeletePortfolio;
+window.executeDeletePortfolio = executeDeletePortfolio;

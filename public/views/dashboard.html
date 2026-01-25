@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Investment Tracker</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/styles/app.css?v=8">
+    <link rel="stylesheet" href="/public/styles/app.css?v=9">
     <style>
         /* Lokalne style specyficzne dla Dashboardu */
         .stats-grid {
@@ -59,6 +59,7 @@
             color: inherit;
             display: block;
             transition: all 0.2s;
+            position: relative; /* Dla przycisku usuwania */
         }
         .portfolio-card:hover { 
             border-color: #9ca3af; 
@@ -100,6 +101,25 @@
         .stat-badge-sm.positive { background: #dcfce7; color: #166534; }
         .stat-badge-sm.negative { background: #fee2e2; color: #991b1b; }
         
+        /* Przycisk usuwania w rogu karty */
+        .portfolio-delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-light);
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 5px;
+            border-radius: 4px;
+        }
+        .portfolio-delete-btn:hover {
+            color: var(--negative);
+            background: #fee2e2;
+        }
+
         @media (max-width: 900px) {
             .stats-grid, .portfolios-grid { grid-template-columns: 1fr; }
         }
@@ -124,6 +144,15 @@
         <h1 class="section-title">Podsumowanie portfeli w przeliczeniu na PLN</h1>
 
         <?php
+            // Wskaźnik odświeżania (ukryty domyślnie)
+            // Możesz go ostylować wedle uznania w CSS
+        ?>
+        <div id="refreshIndicator" style="display:none; align-items:center; gap:0.5rem; margin-bottom:1rem; font-size:0.875rem; color:var(--text-light);">
+            <span class="spinner"></span> Aktualizacja cen...
+        </div>
+        <div id="lastUpdateTime" style="font-size:0.75rem; color:var(--text-light); margin-bottom:1rem;"></div>
+
+        <?php
             $totalValue = $portfolioSummary['total_value'] ?? 0;
             $totalProfit = $portfolioSummary['total_profit'] ?? 0;
             $currentProfit = $portfolioSummary['current_profit'] ?? 0;
@@ -139,19 +168,19 @@
 
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-label">Wartość</div>
-                <div class="stat-value"><?= number_format($totalValue, 2, ',', ' ') ?></div>
+                <div class="stat-label">Wartość całkowita</div>
+                <div class="stat-value" data-stat="total-value"><?= number_format($totalValue, 2, ',', ' ') ?> PLN</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Zmiana dzienna</div>
-                <div class="stat-value <?= $dailyChangePercent >= 0 ? 'positive' : 'negative' ?>">
+                <div class="stat-value <?= $dailyChangePercent >= 0 ? 'positive' : 'negative' ?>" data-stat="daily-change-percent">
                     <?= $dailyChangePercent >= 0 ? '+' : '' ?><?= number_format($dailyChangePercent, 2, ',', ' ') ?> %
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Zysk całkowity</div>
-                <div class="stat-value <?= $totalProfit >= 0 ? 'positive' : 'negative' ?>">
-                    <?= number_format($totalProfit, 2, ',', ' ') ?>
+                <div class="stat-value <?= $totalProfit >= 0 ? 'positive' : 'negative' ?>" data-stat="total-profit">
+                    <?= $totalProfit >= 0 ? '+' : '' ?><?= number_format($totalProfit, 2, ',', ' ') ?> PLN
                 </div>
             </div>
             <div class="stat-card">
@@ -161,15 +190,15 @@
                 </div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Zysk dzienny</div>
-                <div class="stat-value <?= $dailyChange >= 0 ? 'positive' : 'negative' ?>">
-                    <?= $dailyChange >= 0 ? '+' : '' ?><?= number_format($dailyChange, 2, ',', ' ') ?>
+                <div class="stat-label">Zysk dzienny (kwotowo)</div>
+                <div class="stat-value <?= $dailyChange >= 0 ? 'positive' : 'negative' ?>" data-stat="daily-change">
+                    <?= $dailyChange >= 0 ? '+' : '' ?><?= number_format($dailyChange, 2, ',', ' ') ?> PLN
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Zysk bieżący</div>
                 <div class="stat-value <?= $currentProfit >= 0 ? 'positive' : 'negative' ?>">
-                    <?= number_format($currentProfit, 2, ',', ' ') ?>
+                    <?= number_format($currentProfit, 2, ',', ' ') ?> PLN
                 </div>
             </div>
             <div class="stat-card">
@@ -179,11 +208,11 @@
                 </div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Walory wzrosty</div>
+                <div class="stat-label">Walory wzrostowe</div>
                 <div class="stat-value positive"><?= $gainers ?></div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Walory spadki</div>
+                <div class="stat-label">Walory spadkowe</div>
                 <div class="stat-value negative"><?= $losers ?></div>
             </div>
         </div>
@@ -204,21 +233,20 @@
                             $pValue = $pData['total_value'] ?? 0;
                             $pProfit = $pData['total_profit'] ?? 0;
                             $pProfitPercent = $pData['total_profit_percent'] ?? 0;
-                            // Te dane są potrzebne do pełnego widoku:
                             $pDailyChange = $pData['daily_change'] ?? 0;
                             $pDailyChangePercent = $pData['daily_change_percent'] ?? 0;
                         ?>
-                        <a href="/assets?portfolio=<?= $portfolio->getId() ?>" class="portfolio-card">
+                        <a href="/assets?portfolio=<?= $portfolio->getId() ?>" class="portfolio-card" data-portfolio-id="<?= $portfolio->getId() ?>">
                             <div class="portfolio-header">
-                                <div class="portfolio-name">Portfel <?= htmlspecialchars($portfolio->getName()) ?></div>
+                                <div class="portfolio-name"><?= htmlspecialchars($portfolio->getName()) ?></div>
                                 <div class="portfolio-value"><?= number_format($pValue, 2, ',', ' ') ?> PLN</div>
                             </div>
 
                             <div class="portfolio-badges">
-                                <span class="stat-badge-sm <?= $pProfitPercent >= 0 ? 'positive' : 'negative' ?>">
+                                <span class="stat-badge-sm <?= $pProfitPercent >= 0 ? 'positive' : 'negative' ?> profit-badge">
                                     <?= $pProfitPercent >= 0 ? '+' : '' ?><?= number_format($pProfitPercent, 1) ?> %
                                 </span>
-                                <span class="<?= $pProfit >= 0 ? 'positive' : 'negative' ?>" style="font-weight:600;">
+                                <span class="<?= $pProfit >= 0 ? 'positive' : 'negative' ?> profit-amount" style="font-weight:600;">
                                     <?= $pProfit >= 0 ? '+' : '' ?><?= number_format($pProfit, 2, ',', ' ') ?> PLN
                                 </span>
                             </div>
@@ -226,13 +254,13 @@
                             <div class="portfolio-stats">
                                 <div class="portfolio-stat-row">
                                     <span class="portfolio-stat-label">Zmiana dzienna</span>
-                                    <span class="portfolio-stat-value stat-badge-sm <?= $pDailyChangePercent >= 0 ? 'positive' : 'negative' ?>">
+                                    <span class="portfolio-stat-value stat-badge-sm <?= $pDailyChangePercent >= 0 ? 'positive' : 'negative' ?> daily-change-percent">
                                         <?= $pDailyChangePercent >= 0 ? '+' : '' ?><?= number_format($pDailyChangePercent, 2) ?> %
                                     </span>
                                 </div>
                                 <div class="portfolio-stat-row">
                                     <span class="portfolio-stat-label">Zysk dzienny</span>
-                                    <span class="portfolio-stat-value stat-badge-sm <?= $pDailyChange >= 0 ? 'positive' : 'negative' ?>">
+                                    <span class="portfolio-stat-value stat-badge-sm <?= $pDailyChange >= 0 ? 'positive' : 'negative' ?> daily-change">
                                         <?= $pDailyChange >= 0 ? '+' : '' ?><?= number_format($pDailyChange, 2) ?> PLN
                                     </span>
                                 </div>
@@ -242,13 +270,11 @@
                                         <?= $pProfit >= 0 ? '+' : '' ?><?= number_format($pProfit, 2) ?> PLN
                                     </span>
                                 </div>
-                                <div class="portfolio-stat-row">
-                                    <span class="portfolio-stat-label">Stopa zwrotu</span>
-                                    <span class="portfolio-stat-value stat-badge-sm <?= $pProfitPercent >= 0 ? 'positive' : 'negative' ?>">
-                                        <?= $pProfitPercent >= 0 ? '+' : '' ?><?= number_format($pProfitPercent, 2) ?> %
-                                    </span>
-                                </div>
                             </div>
+                            
+                            <button type="button" 
+                                    onclick="event.preventDefault(); event.stopPropagation(); confirmDeletePortfolio(<?= $portfolio->getId() ?>, '<?= htmlspecialchars($portfolio->getName(), ENT_QUOTES) ?>')" 
+                                    class="portfolio-delete-btn" title="Usuń portfel">×</button>
                         </a>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -281,9 +307,25 @@
             </form>
         </div>
     </div>
+
+    <div id="deletePortfolioModal" class="modal">
+        <div class="modal-content">
+            <h3>Usuń portfel</h3>
+            <p>Czy na pewno chcesz usunąć portfel <strong id="deletePortfolioName"></strong>?</p>
+            <p style="color: var(--negative); font-size: 0.85rem; margin-top: 0.5rem;">
+                ⚠️ UWAGA: Wszystkie aktywa i transakcje przypisane do tego portfela zostaną trwale usunięte!
+            </p>
+            <div class="modal-actions">
+                <button type="button" onclick="closeModal('deletePortfolioModal')" class="btn btn-cancel">Anuluj</button>
+                <button type="button" onclick="executeDeletePortfolio()" class="btn btn-danger">Usuń portfel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         function openCreatePortfolioModal() { document.getElementById('createPortfolioModal').style.display = 'flex'; }
         function closeCreatePortfolioModal() { document.getElementById('createPortfolioModal').style.display = 'none'; }
+        // Funkcje usuwania są teraz obsługiwane w fetch.js
     </script>
     <script src="/public/scripts/fetch.js"></script>
 </body>

@@ -92,6 +92,10 @@ class Routing {
             'controller' => 'DashboardController',
             'action' => 'getStats'
         ],
+        'api/portfolio/data' => [
+            'controller' => 'DashboardController',
+            'action' => 'getPortfolioDataApi'
+        ],
         // Fetch API endpoints
         'api/portfolio/create' => [
             'controller' => 'PortfolioController',

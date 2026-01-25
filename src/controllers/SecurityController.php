@@ -112,7 +112,6 @@ class SecurityController extends AppController {
         } elseif (!preg_match('/^[a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ\s\-]+$/u', $lastname)) {
             $errors[] = 'Nazwisko może zawierać tylko litery, spacje i myślniki';
         }
-
         if (!empty($errors)) {
             $this->render('register', [
                 'message' => implode('<br>', $errors),
