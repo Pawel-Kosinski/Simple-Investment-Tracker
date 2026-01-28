@@ -161,8 +161,8 @@
             $dailyChangePercent = $portfolioSummary['daily_change_percent'] ?? 0;
             $gainers = 0; $losers = 0;
             foreach ($holdings ?? [] as $h) {
-                if (($h['current_profit'] ?? 0) > 0) $gainers++;
-                elseif (($h['current_profit'] ?? 0) < 0) $losers++;
+                if (($h['current_profit_pln'] ?? 0) > 0) $gainers++;
+                elseif (($h['current_profit_pln'] ?? 0) < 0) $losers++;
             }
         ?>
 
